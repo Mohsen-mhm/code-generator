@@ -123,6 +123,30 @@ php artisan generate:routes {name} --api
 
 This will add resource routes to your web.php or api.php file.
 
+#### Rollback Generated Files
+
+```bash
+php artisan generate:rollback {name} --all
+```
+
+This will delete all files generated for a specific model. You can also selectively delete specific components:
+
+```bash
+php artisan generate:rollback {name} --model --controller --migration
+```
+
+Available options:
+- `--all`: Delete all generated files
+- `--model`: Delete the model
+- `--controller`: Delete the controller
+- `--migration`: Delete the migration
+- `--factory`: Delete the factory
+- `--resource`: Delete API resources
+- `--livewire`: Delete Livewire components
+- `--test`: Delete tests
+- `--routes`: Remove routes from route files
+- `--force`: Skip confirmation prompt
+
 ### Schema Format
 
 The schema format follows a simple pattern:

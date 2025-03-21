@@ -12,6 +12,7 @@ use MohsenMhm\CodeGenerator\Commands\GenerateResourceCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateRoutesCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateTestCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateFactoryCommand;
+use MohsenMhm\CodeGenerator\Commands\GenerateRollbackCommand;
 
 class CodeGeneratorServiceProvider extends ServiceProvider
 {
@@ -28,6 +29,7 @@ class CodeGeneratorServiceProvider extends ServiceProvider
                 GenerateRoutesCommand::class,
                 GenerateTestCommand::class,
                 GenerateFactoryCommand::class,
+                GenerateRollbackCommand::class,
             ]);
 
             $this->publishes([
