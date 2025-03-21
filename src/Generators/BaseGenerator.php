@@ -186,16 +186,16 @@ abstract class BaseGenerator
      */
     protected function getStubContents($stub, $replacements = [])
     {
-        $stubPath = __DIR__ . '/../../stubs/' . $stub . '.stub';
+        $stubPath = __DIR__ . '/../../Stubs/' . $stub . '.stub';
         
         // Check if the stub exists in the package
         if (!file_exists($stubPath)) {
             // Try to find the stub in the vendor directory
-            $stubPath = base_path('vendor/mohsen-mhm/code-generator/stubs/' . $stub . '.stub');
+            $stubPath = base_path('vendor/mohsen-mhm/code-generator/Stubs/' . $stub . '.stub');
             
             // If still not found, try the published stubs
             if (!file_exists($stubPath)) {
-                $stubPath = base_path('stubs/code-generator/' . $stub . '.stub');
+                $stubPath = base_path('Stubs/code-generator/' . $stub . '.stub');
             }
         }
         
