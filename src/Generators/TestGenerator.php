@@ -21,6 +21,7 @@ class TestGenerator extends BaseGenerator
         $modelName = $this->options['model'] ?? str_replace('Test', '', $testName);
         $modelNamespace = $this->getNamespace('model') . '\\' . $modelName;
         $modelVariable = Str::camel($modelName);
+        $modelVariablePlural = Str::camel(Str::pluralStudly($modelName));
         
         // Get the full controller namespace
         $controllerNamespace = $this->getNamespace('controller');
@@ -33,6 +34,7 @@ class TestGenerator extends BaseGenerator
             'model' => $modelName,
             'modelNamespace' => $modelNamespace,
             'modelVariable' => $modelVariable,
+            'modelVariablePlural' => $modelVariablePlural,
             'tableName' => Str::snake(Str::pluralStudly($modelName)),
             'routeName' => Str::kebab(Str::pluralStudly($modelName)),
             'controllerNamespace' => $controllerNamespace,

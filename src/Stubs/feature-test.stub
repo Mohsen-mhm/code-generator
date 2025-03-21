@@ -40,6 +40,11 @@ class {{ class }} extends TestCase
 
         // Prepare data for submission
         $data = {{ model }}::factory()->make()->toArray();
+        
+        // Filter out any non-scalar values that might cause issues
+        $data = array_filter($data, function($value) {
+            return is_scalar($value) || is_null($value);
+        });
 
         // Submit the form
         $response = $this->post(route('{{ routeName }}.store'), $data);
@@ -83,6 +88,11 @@ class {{ class }} extends TestCase
 
         // Prepare data for submission
         $data = {{ model }}::factory()->make()->toArray();
+        
+        // Filter out any non-scalar values that might cause issues
+        $data = array_filter($data, function($value) {
+            return is_scalar($value) || is_null($value);
+        });
 
         // Submit the form
         $response = $this->put(route('{{ routeName }}.update', ${{ modelVariable }}->id), $data);
