@@ -13,9 +13,17 @@ class MigrationGenerator extends BaseGenerator
         $tableName = $this->options['table'] ?? Str::snake(Str::pluralStudly($modelName));
         
         // Check if migration already exists
-        if ($this->migrationExists($tableName) && !$this->options['force']) {
-            $this->info("Migration for table '{$tableName}' already exists. Use --force to overwrite.");
-            return false;
+        $existingMigration = $this->findExistingMigration($tableName);
+        
+        if ($existingMigration) {
+            if ($this->options['force'] ?? false) {
+                // If --force is used, delete the existing migration
+                $this->filesystem->delete($existingMigration);
+                $this->info("Deleted existing migration for table '{$tableName}'.");
+            } else {
+                $this->info("Migration for table '{$tableName}' already exists. Use --force to overwrite.");
+                return false;
+            }
         }
         
         $timestamp = now()->format('Y_m_d_His');
@@ -43,12 +51,12 @@ class MigrationGenerator extends BaseGenerator
     }
     
     /**
-     * Check if a migration for the given table already exists.
+     * Find an existing migration for the given table.
      *
      * @param string $tableName
-     * @return bool
+     * @return string|null The full path to the migration file if found, null otherwise
      */
-    protected function migrationExists($tableName)
+    protected function findExistingMigration($tableName)
     {
         $migrationsPath = $this->getPath('migrations');
         $files = File::glob($migrationsPath . '/*.php');
@@ -58,17 +66,29 @@ class MigrationGenerator extends BaseGenerator
             
             // Check for create_table_name_table.php pattern
             if (Str::contains($filename, "create_{$tableName}_table")) {
-                return true;
+                return $file;
             }
             
             // Also check the content of the file for the table name
             $content = File::get($file);
             if (Str::contains($content, "Schema::create('{$tableName}'") || 
                 Str::contains($content, "Schema::create(\"{$tableName}\"")) {
-                return true;
+                return $file;
             }
         }
         
-        return false;
+        return null;
     }
+    
+    /**
+     * Check if a migration for the given table already exists.
+     *
+     * @param string $tableName
+     * @return bool
+     */
+    protected function migrationExists($tableName)
+    {
+        return $this->findExistingMigration($tableName) !== null;
+    }
+} 
 } 
