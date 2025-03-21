@@ -118,7 +118,7 @@ class SeederGenerator extends BaseGenerator
             }
         }
         
-        $this->warn("Could not update DatabaseSeeder.php.");
+        $this->error("Could not update DatabaseSeeder.php.");
         return false;
     }
 }

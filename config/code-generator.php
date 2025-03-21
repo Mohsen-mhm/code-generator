@@ -20,13 +20,33 @@ return [
     |
     */
     'paths' => [
-        'models' => app_path('Models'),
-        'controllers' => app_path('Http/Controllers'),
-        'livewire' => app_path('Livewire'),
-        'migrations' => database_path('migrations'),
-        'resources' => app_path('Http/Resources'),
+        'models' => base_path('app/Models'),
+        'controllers' => base_path('app/Http/Controllers'),
+        'livewire' => base_path('app/Livewire'),
+        'migrations' => base_path('database/migrations'),
+        'resources' => base_path('app/Http/Resources'),
         'tests' => base_path('tests'),
-        'factories' => database_path('factories'),
+        'factories' => base_path('database/factories'),
+        'seeders' => base_path('database/seeders'),
+        'requests' => base_path('app/Http/Requests'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Namespace Customization
+    |--------------------------------------------------------------------------
+    |
+    | Customize namespaces for specific types of generated files.
+    | This is helpful when the namespaces differ from the standard pattern.
+    |
+    */
+    'namespaces' => [
+        'model' => 'App\\Models',
+        'controller' => 'App\\Http\\Controllers',
+        'resource' => 'App\\Http\\Resources',
+        'factory' => 'Database\\Factories',
+        'seeder' => 'Database\\Seeders',              // Added for SeederGenerator
+        'request' => 'App\\Http\\Requests',           // Added for RequestGenerator
     ],
 
     /*
@@ -103,4 +123,16 @@ return [
         'api_middleware' => ['api'],
         'api_version_prefix' => 'v1',
     ],
-]; 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Seeder Options
+    |--------------------------------------------------------------------------
+    |
+    | Configure how seeders should be generated.
+    |
+    */
+    'seeders' => [
+        'update_database_seeder' => true,  // Added for SeederGenerator
+    ],
+];
