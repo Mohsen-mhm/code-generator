@@ -40,81 +40,60 @@ class GenerateCommand extends Command
     {
         $name = $this->argument('name');
         $schema = $this->option('schema');
-        $force = $this->option('force');
-        $api = $this->option('api');
         $all = $this->option('all');
 
+        // Create parameter arrays for each command
+        $params = [
+            'name' => $name,
+        ];
+        
+        if ($schema) {
+            $params['--schema'] = $schema;
+        }
+        
+        if ($this->option('force')) {
+            $params['--force'] = true;
+        }
+        
+        $apiParams = $params;
+        if ($this->option('api')) {
+            $apiParams['--api'] = true;
+        }
+
         if ($all || $this->option('model')) {
-            $this->call('generate:model', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--force' => $force,
-            ]);
+            $this->call('generate:model', $params);
         }
 
         if ($all || $this->option('controller')) {
-            $this->call('generate:controller', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--api' => $api,
-                '--force' => $force,
-            ]);
+            $this->call('generate:controller', $apiParams);
         }
 
         if ($all || $this->option('migration')) {
-            $this->call('generate:migration', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--force' => $force,
-            ]);
+            $this->call('generate:migration', $params);
         }
 
         if ($all || $this->option('factory')) {
-            $this->call('generate:factory', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--force' => $force,
-            ]);
+            $this->call('generate:factory', $params);
         }
 
         if ($all || $this->option('seeder')) {
-            $this->call('generate:seeder', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--force' => $force,
-            ]);
+            $this->call('generate:seeder', $params);
         }
 
         if ($all || $this->option('resource')) {
-            $this->call('generate:resource', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--force' => $force,
-            ]);
+            $this->call('generate:resource', $params);
         }
 
         if ($all || $this->option('request')) {
-            $this->call('generate:request', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--force' => $force,
-            ]);
+            $this->call('generate:request', $params);
         }
 
         if ($all || $this->option('test')) {
-            $this->call('generate:test', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--force' => $force,
-            ]);
+            $this->call('generate:test', $params);
         }
 
         if ($all || $this->option('view')) {
-            $this->call('generate:views', [
-                'name' => $name,
-                '--schema' => $schema,
-                '--force' => $force,
-            ]);
+            $this->call('generate:views', $params);
         }
 
         $this->info('Code generation completed!');

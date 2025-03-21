@@ -121,17 +121,26 @@ abstract class BaseGenerator
      */
     protected function getNamespace($type)
     {
-        $namespaces = [
-            'controller' => 'App\\Http\\Controllers',
-            'model' => 'App\\Models',
-            'resource' => 'App\\Http\\Resources',
-            'request' => 'App\\Http\\Requests',
-            'factory' => 'Database\\Factories',
-            'seeder' => 'Database\\Seeders',
-            'policy' => 'App\\Policies',
-        ];
+        $config = config('code-generator.namespaces');
         
-        return $namespaces[$type] ?? 'App';
+        switch ($type) {
+            case 'model':
+                return $config['model'] ?? 'App\\Models';
+            case 'controller':
+                return $config['controller'] ?? 'App\\Http\\Controllers';
+            case 'request':
+                return $config['request'] ?? 'App\\Http\\Requests';
+            case 'resource':
+                return $config['resource'] ?? 'App\\Http\\Resources';
+            case 'factory':
+                return $config['factory'] ?? 'Database\\Factories';
+            case 'seeder':
+                return $config['seeder'] ?? 'Database\\Seeders';
+            case 'test':
+                return $config['test'] ?? 'Tests\\Feature';
+            default:
+                return 'App';
+        }
     }
     
     /**
@@ -142,19 +151,30 @@ abstract class BaseGenerator
      */
     protected function getPath($type)
     {
-        $paths = [
-            'controllers' => app_path('Http/Controllers'),
-            'models' => app_path('Models'),
-            'resources' => app_path('Http/Resources'),
-            'requests' => app_path('Http/Requests'),
-            'factories' => database_path('factories'),
-            'seeders' => database_path('seeders'),
-            'policies' => app_path('Policies'),
-            'views' => resource_path('views'),
-            'migrations' => database_path('migrations'),
-        ];
+        $config = config('code-generator.paths');
         
-        return $paths[$type] ?? app_path();
+        switch ($type) {
+            case 'model':
+                return app_path($config['model'] ?? 'Models');
+            case 'controller':
+                return app_path($config['controller'] ?? 'Http/Controllers');
+            case 'request':
+                return app_path($config['request'] ?? 'Http/Requests');
+            case 'resource':
+                return app_path($config['resource'] ?? 'Http/Resources');
+            case 'factory':
+                return database_path($config['factory'] ?? 'factories');
+            case 'seeder':
+                return database_path($config['seeder'] ?? 'seeders');
+            case 'migration':
+                return database_path($config['migration'] ?? 'migrations');
+            case 'test':
+                return base_path($config['test'] ?? 'tests/Feature');
+            case 'views':
+                return resource_path($config['views'] ?? 'views');
+            default:
+                return app_path();
+        }
     }
     
     /**
@@ -166,7 +186,7 @@ abstract class BaseGenerator
      */
     protected function getStubContents($stub, $replacements = [])
     {
-        $contents = file_get_contents(__DIR__ . '/../Stubs/' . $stub . '.stub');
+        $contents = file_get_contents(__DIR__ . '/../../stubs/' . $stub . '.stub');
         
         foreach ($replacements as $search => $replace) {
             $contents = str_replace('{{ ' . $search . ' }}', $replace, $contents);
@@ -184,16 +204,17 @@ abstract class BaseGenerator
      */
     protected function writeFile($path, $contents)
     {
-        if (!$this->filesystem->isDirectory(dirname($path))) {
-            $this->filesystem->makeDirectory(dirname($path), 0755, true);
-        }
-        
-        if ($this->filesystem->exists($path) && !($this->options['force'] ?? false)) {
-            $this->error("File [{$path}] already exists!");
+        if (file_exists($path) && !($this->options['force'] ?? false)) {
+            $this->error("File [{$path}] already exists. Use --force to overwrite.");
             return false;
         }
         
-        $this->filesystem->put($path, $contents);
+        $directory = dirname($path);
+        if (!file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+        
+        file_put_contents($path, $contents);
         
         return true;
     }
@@ -212,23 +233,15 @@ abstract class BaseGenerator
         
         $fields = [];
         
-        $parts = explode(',', $schema);
-        
-        foreach ($parts as $part) {
-            $part = trim($part);
-            
-            if (empty($part)) {
-                continue;
-            }
-            
-            $fieldParts = explode(':', $part);
-            
-            $name = trim($fieldParts[0]);
-            $type = trim($fieldParts[1] ?? 'string');
+        $schemaFields = explode(',', $schema);
+        foreach ($schemaFields as $field) {
+            $fieldParts = explode(':', $field);
+            $fieldName = trim($fieldParts[0]);
+            $fieldType = isset($fieldParts[1]) ? trim($fieldParts[1]) : 'string';
             
             $fields[] = [
-                'name' => $name,
-                'type' => $type,
+                'name' => $fieldName,
+                'type' => $fieldType,
             ];
         }
         
@@ -246,15 +259,14 @@ abstract class BaseGenerator
         $foreignKeys = [];
         
         foreach ($fields as $field) {
-            $name = $field['name'];
-            $type = $field['type'];
-            
-            if ($type === 'foreignId' || Str::endsWith($name, '_id')) {
-                $relatedModel = Str::studly(str_replace('_id', '', $name));
+            if (Str::endsWith($field['name'], '_id') || $field['type'] === 'foreignId') {
+                $relation = Str::beforeLast($field['name'], '_id');
+                $model = Str::studly($relation);
                 
                 $foreignKeys[] = [
-                    'name' => $name,
-                    'model' => $relatedModel,
+                    'name' => $field['name'],
+                    'relation' => $relation,
+                    'model' => $model,
                 ];
             }
         }
