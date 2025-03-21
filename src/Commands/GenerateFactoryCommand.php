@@ -7,32 +7,35 @@ use MohsenMhm\CodeGenerator\Generators\FactoryGenerator;
 
 class GenerateFactoryCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'generate:factory {name} 
                             {--schema=} 
-                            {--model=} 
                             {--force : Overwrite existing files}';
 
-    protected $description = 'Generate a model factory';
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Generate a factory file';
 
+    /**
+     * Execute the console command.
+     */
     public function handle()
     {
         $name = $this->argument('name');
         $schema = $this->option('schema');
-        $model = $this->option('model');
-        $force = $this->option('force');
-        
         $options = [
-            'model' => $model,
-            'force' => $force,
+            'force' => $this->option('force'),
         ];
-        
-        app(FactoryGenerator::class)
-            ->setCommand($this)
-            ->setName($name)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-        
-        return 0;
+
+        $generator = new FactoryGenerator($name, $schema, $options);
+        $generator->setCommand($this);
+        $generator->generate();
     }
 } 

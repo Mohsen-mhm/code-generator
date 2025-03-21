@@ -8,20 +8,29 @@ use Illuminate\Support\Str;
 
 class GenerateRollbackCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'generate:rollback {name} 
-                            {--all : Delete all generated files} 
-                            {--model : Delete model} 
-                            {--controller : Delete controller} 
-                            {--migration : Delete migration} 
-                            {--factory : Delete factory}
-                            {--resource : Delete API resource} 
-                            {--livewire : Delete Livewire component} 
-                            {--test : Delete tests} 
-                            {--routes : Remove routes}
-                            {--views : Delete views}
-                            {--force : Force deletion without confirmation}';
+                            {--all : Rollback all files} 
+                            {--controller : Rollback controller} 
+                            {--model : Rollback model} 
+                            {--migration : Rollback migration} 
+                            {--factory : Rollback factory} 
+                            {--seeder : Rollback seeder} 
+                            {--resource : Rollback resource} 
+                            {--request : Rollback form request} 
+                            {--test : Rollback test} 
+                            {--view : Rollback views}';
 
-    protected $description = 'Rollback and delete generated files';
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Rollback generated files';
 
     /**
      * Execute the console command.
@@ -30,222 +39,217 @@ class GenerateRollbackCommand extends Command
     {
         $name = $this->argument('name');
         $all = $this->option('all');
-        $force = $this->option('force');
-        
-        if (!$force) {
-            if (!$this->confirm("Are you sure you want to delete generated files for '{$name}'? This action cannot be undone.", false)) {
-                $this->info('Operation cancelled.');
-                return 0;
-            }
-        }
-        
-        $deleted = [];
-        
-        // Delete model
+
         if ($all || $this->option('model')) {
-            $modelName = Str::studly($name);
-            $modelPath = $this->getModelPath($modelName);
-            
-            if (File::exists($modelPath)) {
-                File::delete($modelPath);
-                $deleted[] = "Model: {$modelPath}";
-            }
+            $this->rollbackModel($name);
         }
-        
-        // Delete controller
+
         if ($all || $this->option('controller')) {
-            $controllerName = Str::studly($name) . 'Controller';
-            $controllerPath = $this->getControllerPath($controllerName);
-            
-            if (File::exists($controllerPath)) {
-                File::delete($controllerPath);
-                $deleted[] = "Controller: {$controllerPath}";
-            }
+            $this->rollbackController($name);
         }
-        
-        // Delete migration
+
         if ($all || $this->option('migration')) {
-            $tableName = Str::snake(Str::pluralStudly($name));
-            $migrationPattern = database_path("migrations/*_create_{$tableName}_table.php");
-            $migrationFiles = glob($migrationPattern);
-            
-            foreach ($migrationFiles as $migrationFile) {
-                File::delete($migrationFile);
-                $deleted[] = "Migration: {$migrationFile}";
-            }
+            $this->rollbackMigration($name);
         }
-        
-        // Delete factory
+
         if ($all || $this->option('factory')) {
-            $factoryName = Str::studly($name) . 'Factory';
-            $factoryPath = database_path("factories/{$factoryName}.php");
-            
-            if (File::exists($factoryPath)) {
-                File::delete($factoryPath);
-                $deleted[] = "Factory: {$factoryPath}";
-            }
+            $this->rollbackFactory($name);
         }
-        
-        // Delete resource
+
+        if ($all || $this->option('seeder')) {
+            $this->rollbackSeeder($name);
+        }
+
         if ($all || $this->option('resource')) {
-            $resourceName = Str::studly($name) . 'Resource';
-            $resourcePath = app_path("Http/Resources/{$resourceName}.php");
-            
-            if (File::exists($resourcePath)) {
-                File::delete($resourcePath);
-                $deleted[] = "Resource: {$resourcePath}";
-            }
+            $this->rollbackResource($name);
         }
-        
-        // Delete Livewire component
-        if ($all || $this->option('livewire')) {
-            $livewireName = Str::studly($name);
-            $livewirePath = app_path("Livewire/{$livewireName}.php");
-            
-            if (File::exists($livewirePath)) {
-                File::delete($livewirePath);
-                $deleted[] = "Livewire: {$livewirePath}";
-            }
-            
-            $livewireViewPath = resource_path("views/livewire/" . Str::kebab($livewireName) . ".blade.php");
-            
-            if (File::exists($livewireViewPath)) {
-                File::delete($livewireViewPath);
-                $deleted[] = "Livewire View: {$livewireViewPath}";
-            }
+
+        if ($all || $this->option('request')) {
+            $this->rollbackRequest($name);
         }
-        
-        // Delete tests
+
         if ($all || $this->option('test')) {
-            $testName = Str::studly($name) . 'Test';
-            $featureTestPath = base_path("tests/Feature/{$testName}.php");
-            $unitTestPath = base_path("tests/Unit/{$testName}.php");
-            
-            if (File::exists($featureTestPath)) {
-                File::delete($featureTestPath);
-                $deleted[] = "Feature Test: {$featureTestPath}";
-            }
-            
-            if (File::exists($unitTestPath)) {
-                File::delete($unitTestPath);
-                $deleted[] = "Unit Test: {$unitTestPath}";
-            }
+            $this->rollbackTest($name);
         }
-        
-        // Delete views
-        if ($all || $this->option('views')) {
-            $viewName = Str::kebab(Str::pluralStudly($name));
-            $viewPath = resource_path("views/{$viewName}");
-            
-            if (File::isDirectory($viewPath)) {
-                File::deleteDirectory($viewPath);
-                $deleted[] = "Views: {$viewPath}";
-            }
+
+        if ($all || $this->option('view')) {
+            $this->rollbackViews($name);
         }
+
+        $this->info('Rollback completed!');
+    }
+
+    /**
+     * Rollback a model.
+     *
+     * @param string $name
+     * @return void
+     */
+    protected function rollbackModel($name)
+    {
+        $path = app_path('Models/' . $name . '.php');
         
-        // Remove routes
-        if ($all || $this->option('routes')) {
-            $resourceName = Str::kebab(Str::pluralStudly($name));
-            $controllerName = Str::studly($name) . 'Controller';
-            
-            $webRoutesPath = base_path('routes/web.php');
-            $apiRoutesPath = base_path('routes/api.php');
-            
-            if (File::exists($webRoutesPath)) {
-                $this->removeRoutes($webRoutesPath, $resourceName, $controllerName);
-                $this->cleanEmptyRouteGroups($webRoutesPath);
-                $deleted[] = "Routes: Removed from web.php";
-            }
-            
-            if (File::exists($apiRoutesPath)) {
-                $this->removeRoutes($apiRoutesPath, $resourceName, $controllerName);
-                $this->cleanEmptyRouteGroups($apiRoutesPath);
-                $deleted[] = "Routes: Removed from api.php";
-            }
-        }
-        
-        if (empty($deleted)) {
-            $this->info("No files found to delete for '{$name}'.");
+        if (File::exists($path)) {
+            File::delete($path);
+            $this->info("Model [{$name}] rolled back successfully.");
         } else {
-            $this->info("The following files were deleted:");
-            foreach ($deleted as $file) {
-                $this->line("  - {$file}");
+            $this->warn("Model [{$name}] not found.");
+        }
+    }
+
+    /**
+     * Rollback a controller.
+     *
+     * @param string $name
+     * @return void
+     */
+    protected function rollbackController($name)
+    {
+        $controllerName = $name . 'Controller';
+        $path = app_path('Http/Controllers/' . $controllerName . '.php');
+        
+        if (File::exists($path)) {
+            File::delete($path);
+            $this->info("Controller [{$controllerName}] rolled back successfully.");
+        } else {
+            $this->warn("Controller [{$controllerName}] not found.");
+        }
+    }
+
+    /**
+     * Rollback a migration.
+     *
+     * @param string $name
+     * @return void
+     */
+    protected function rollbackMigration($name)
+    {
+        $tableName = Str::snake(Str::pluralStudly($name));
+        $migrationPath = database_path('migrations');
+        
+        $migrations = File::glob($migrationPath . '/*_create_' . $tableName . '_table.php');
+        
+        if (!empty($migrations)) {
+            foreach ($migrations as $migration) {
+                File::delete($migration);
+                $this->info("Migration [" . basename($migration) . "] rolled back successfully.");
             }
+        } else {
+            $this->warn("Migration for [{$tableName}] not found.");
         }
-        
-        return 0;
     }
-    
+
     /**
-     * Get the path to the model file.
+     * Rollback a factory.
+     *
+     * @param string $name
+     * @return void
      */
-    protected function getModelPath($modelName)
+    protected function rollbackFactory($name)
     {
-        return app_path("Models/{$modelName}.php");
-    }
-    
-    /**
-     * Get the path to the controller file.
-     */
-    protected function getControllerPath($controllerName)
-    {
-        return app_path("Http/Controllers/{$controllerName}.php");
-    }
-    
-    /**
-     * Remove routes from a routes file.
-     */
-    protected function removeRoutes($routesPath, $resourceName, $controllerName)
-    {
-        $content = File::get($routesPath);
+        $factoryName = $name . 'Factory';
+        $path = database_path('factories/' . $factoryName . '.php');
         
-        // Pattern to match resource route definitions
-        $patterns = [
-            "/Route::resource\(['\"]" . preg_quote($resourceName, '/') . "['\"],.*?{$controllerName}.*?\);/",
-            "/Route::apiResource\(['\"]" . preg_quote($resourceName, '/') . "['\"],.*?{$controllerName}.*?\);/",
-        ];
-        
-        // Also try to remove the entire group if it only contains our route
-        $groupPatterns = [
-            "/Route::prefix\(['\"].*?['\"]\)->middleware\(\[.*?\]\)->group\(function \(\) {[\s\n]*Route::(?:api)?resource\(['\"]" . preg_quote($resourceName, '/') . "['\"],.*?{$controllerName}.*?\);[\s\n]*}\);/",
-            "/Route::middleware\(\[.*?\]\)->group\(function \(\) {[\s\n]*Route::(?:api)?resource\(['\"]" . preg_quote($resourceName, '/') . "['\"],.*?{$controllerName}.*?\);[\s\n]*}\);/",
-        ];
-        
-        foreach ($patterns as $pattern) {
-            $content = preg_replace($pattern, '', $content);
+        if (File::exists($path)) {
+            File::delete($path);
+            $this->info("Factory [{$factoryName}] rolled back successfully.");
+        } else {
+            $this->warn("Factory [{$factoryName}] not found.");
         }
-        
-        foreach ($groupPatterns as $pattern) {
-            $content = preg_replace($pattern, '', $content);
-        }
-        
-        // Remove any double blank lines
-        $content = preg_replace("/\n\s*\n\s*\n/", "\n\n", $content);
-        
-        File::put($routesPath, $content);
     }
-    
+
     /**
-     * Clean up empty route groups.
+     * Rollback a seeder.
+     *
+     * @param string $name
+     * @return void
      */
-    protected function cleanEmptyRouteGroups($routesPath)
+    protected function rollbackSeeder($name)
     {
-        $content = File::get($routesPath);
+        $seederName = $name . 'Seeder';
+        $path = database_path('seeders/' . $seederName . '.php');
         
-        // Pattern to match empty route groups
-        $emptyGroupPatterns = [
-            "/Route::middleware\(\[.*?\]\)->group\(function \(\) {\s*\n\s*}\);/",
-            "/Route::prefix\(['\"].*?['\"]\)->middleware\(\[.*?\]\)->group\(function \(\) {\s*\n\s*}\);/",
-            "/Route::group\(\[.*?\], function \(\) {\s*\n\s*}\);/",
-        ];
-        
-        foreach ($emptyGroupPatterns as $pattern) {
-            $content = preg_replace($pattern, '', $content);
+        if (File::exists($path)) {
+            File::delete($path);
+            $this->info("Seeder [{$seederName}] rolled back successfully.");
+        } else {
+            $this->warn("Seeder [{$seederName}] not found.");
         }
+    }
+
+    /**
+     * Rollback a resource.
+     *
+     * @param string $name
+     * @return void
+     */
+    protected function rollbackResource($name)
+    {
+        $resourceName = $name . 'Resource';
+        $path = app_path('Http/Resources/' . $resourceName . '.php');
         
-        // Remove any double blank lines
-        $content = preg_replace("/\n\s*\n\s*\n/", "\n\n", $content);
+        if (File::exists($path)) {
+            File::delete($path);
+            $this->info("Resource [{$resourceName}] rolled back successfully.");
+        } else {
+            $this->warn("Resource [{$resourceName}] not found.");
+        }
+    }
+
+    /**
+     * Rollback a request.
+     *
+     * @param string $name
+     * @return void
+     */
+    protected function rollbackRequest($name)
+    {
+        $requestName = $name . 'Request';
+        $path = app_path('Http/Requests/' . $requestName . '.php');
         
-        File::put($routesPath, $content);
+        if (File::exists($path)) {
+            File::delete($path);
+            $this->info("Request [{$requestName}] rolled back successfully.");
+        } else {
+            $this->warn("Request [{$requestName}] not found.");
+        }
+    }
+
+    /**
+     * Rollback a test.
+     *
+     * @param string $name
+     * @return void
+     */
+    protected function rollbackTest($name)
+    {
+        $testName = $name . 'Test';
+        $path = base_path('tests/Feature/' . $testName . '.php');
+        
+        if (File::exists($path)) {
+            File::delete($path);
+            $this->info("Test [{$testName}] rolled back successfully.");
+        } else {
+            $this->warn("Test [{$testName}] not found.");
+        }
+    }
+
+    /**
+     * Rollback views.
+     *
+     * @param string $name
+     * @return void
+     */
+    protected function rollbackViews($name)
+    {
+        $viewName = Str::kebab(Str::pluralStudly($name));
+        $viewPath = resource_path('views/' . $viewName);
+        
+        if (File::isDirectory($viewPath)) {
+            File::deleteDirectory($viewPath);
+            $this->info("Views for [{$name}] rolled back successfully.");
+        } else {
+            $this->warn("Views for [{$name}] not found.");
+        }
     }
 } 

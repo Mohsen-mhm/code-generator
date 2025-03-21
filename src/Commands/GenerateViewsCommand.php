@@ -7,28 +7,36 @@ use MohsenMhm\CodeGenerator\Generators\ViewGenerator;
 
 class GenerateViewsCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'generate:views {name} 
                             {--schema=} 
                             {--force : Overwrite existing files}';
 
-    protected $description = 'Generate views for a model';
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Generate view files';
 
+    /**
+     * Execute the console command.
+     */
     public function handle()
     {
         $name = $this->argument('name');
         $schema = $this->option('schema');
-        
         $options = [
             'force' => $this->option('force'),
+            'model' => $name,
         ];
-        
-        app(ViewGenerator::class)
-            ->setCommand($this)
-            ->setName($name)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-        
-        return 0;
+
+        $generator = new ViewGenerator($name, $schema, $options);
+        $generator->setCommand($this);
+        $generator->generate();
     }
 } 

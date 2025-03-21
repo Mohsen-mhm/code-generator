@@ -7,35 +7,38 @@ use MohsenMhm\CodeGenerator\Generators\ControllerGenerator;
 
 class GenerateControllerCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'generate:controller {name} 
-                            {--model=} 
-                            {--resource=} 
-                            {--api : Generate an API controller} 
+                            {--schema=} 
+                            {--api : Generate an API controller}
                             {--force : Overwrite existing files}';
 
-    protected $description = 'Generate a controller class';
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Generate a controller file';
 
+    /**
+     * Execute the console command.
+     */
     public function handle()
     {
         $name = $this->argument('name');
-        $model = $this->option('model');
-        $resource = $this->option('resource');
-        $api = $this->option('api');
-        $force = $this->option('force');
-        
+        $schema = $this->option('schema');
         $options = [
-            'model' => $model,
-            'resource' => $resource,
-            'api' => $api,
-            'force' => $force,
+            'force' => $this->option('force'),
+            'api' => $this->option('api'),
+            'model' => $name,
         ];
-        
-        app(ControllerGenerator::class)
-            ->setCommand($this)
-            ->setName($name)
-            ->setOptions($options)
-            ->generate();
-        
-        return 0;
+
+        $generator = new ControllerGenerator($name, $schema, $options);
+        $generator->setCommand($this);
+        $generator->generate();
     }
 } 

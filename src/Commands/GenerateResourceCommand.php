@@ -7,35 +7,35 @@ use MohsenMhm\CodeGenerator\Generators\ResourceGenerator;
 
 class GenerateResourceCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'generate:resource {name} 
                             {--schema=} 
-                            {--model=} 
-                            {--collection : Generate a resource collection} 
                             {--force : Overwrite existing files}';
 
-    protected $description = 'Generate an API resource';
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Generate a resource file';
 
+    /**
+     * Execute the console command.
+     */
     public function handle()
     {
         $name = $this->argument('name');
         $schema = $this->option('schema');
-        $model = $this->option('model');
-        $collection = $this->option('collection');
-        $force = $this->option('force');
-        
         $options = [
-            'model' => $model,
-            'collection' => $collection,
-            'force' => $force,
+            'force' => $this->option('force'),
         ];
-        
-        app(ResourceGenerator::class)
-            ->setCommand($this)
-            ->setName($name)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-        
-        return 0;
+
+        $generator = new ResourceGenerator($name, $schema, $options);
+        $generator->setCommand($this);
+        $generator->generate();
     }
 } 

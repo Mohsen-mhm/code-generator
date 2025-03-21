@@ -7,35 +7,35 @@ use MohsenMhm\CodeGenerator\Generators\MigrationGenerator;
 
 class GenerateMigrationCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'generate:migration {name} 
                             {--schema=} 
-                            {--model=} 
-                            {--table=} 
                             {--force : Overwrite existing files}';
 
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
     protected $description = 'Generate a migration file';
 
+    /**
+     * Execute the console command.
+     */
     public function handle()
     {
         $name = $this->argument('name');
         $schema = $this->option('schema');
-        $model = $this->option('model');
-        $table = $this->option('table');
-        $force = $this->option('force');
-        
         $options = [
-            'model' => $model,
-            'table' => $table,
-            'force' => $force,
+            'force' => $this->option('force'),
         ];
-        
-        app(MigrationGenerator::class)
-            ->setCommand($this)
-            ->setName($name)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-        
-        return 0;
+
+        $generator = new MigrationGenerator($name, $schema, $options);
+        $generator->setCommand($this);
+        $generator->generate();
     }
 } 
