@@ -3,18 +3,6 @@
 namespace MohsenMhm\CodeGenerator\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Str;
-use MohsenMhm\CodeGenerator\Generators\ControllerGenerator;
-use MohsenMhm\CodeGenerator\Generators\LivewireGenerator;
-use MohsenMhm\CodeGenerator\Generators\MigrationGenerator;
-use MohsenMhm\CodeGenerator\Generators\ModelGenerator;
-use MohsenMhm\CodeGenerator\Generators\ResourceGenerator;
-use MohsenMhm\CodeGenerator\Generators\RoutesGenerator;
-use MohsenMhm\CodeGenerator\Generators\TestGenerator;
-use MohsenMhm\CodeGenerator\Generators\FactoryGenerator;
-use MohsenMhm\CodeGenerator\Generators\ViewGenerator;
-use MohsenMhm\CodeGenerator\Generators\RequestGenerator;
-use MohsenMhm\CodeGenerator\Generators\SeederGenerator;
 
 class GenerateCommand extends Command
 {
@@ -52,66 +40,81 @@ class GenerateCommand extends Command
     {
         $name = $this->argument('name');
         $schema = $this->option('schema');
-        $options = [
-            'force' => $this->option('force'),
-            'api' => $this->option('api'),
-            'model' => $name,
-        ];
-
+        $force = $this->option('force');
+        $api = $this->option('api');
         $all = $this->option('all');
 
         if ($all || $this->option('model')) {
-            $generator = new ModelGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:model', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--force' => $force,
+            ]);
         }
 
         if ($all || $this->option('controller')) {
-            $generator = new ControllerGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:controller', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--api' => $api,
+                '--force' => $force,
+            ]);
         }
 
         if ($all || $this->option('migration')) {
-            $generator = new MigrationGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:migration', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--force' => $force,
+            ]);
         }
 
         if ($all || $this->option('factory')) {
-            $generator = new FactoryGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:factory', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--force' => $force,
+            ]);
         }
 
         if ($all || $this->option('seeder')) {
-            $generator = new SeederGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:seeder', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--force' => $force,
+            ]);
         }
 
         if ($all || $this->option('resource')) {
-            $generator = new ResourceGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:resource', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--force' => $force,
+            ]);
         }
 
         if ($all || $this->option('request')) {
-            $generator = new RequestGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:request', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--force' => $force,
+            ]);
         }
 
         if ($all || $this->option('test')) {
-            $generator = new TestGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:test', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--force' => $force,
+            ]);
         }
 
         if ($all || $this->option('view')) {
-            $generator = new ViewGenerator($name, $schema, $options);
-            $generator->setCommand($this);
-            $generator->generate();
+            $this->call('generate:views', [
+                'name' => $name,
+                '--schema' => $schema,
+                '--force' => $force,
+            ]);
         }
 
         $this->info('Code generation completed!');

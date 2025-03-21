@@ -15,7 +15,8 @@ use MohsenMhm\CodeGenerator\Commands\GenerateFactoryCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateRollbackCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateViewsCommand;
 use MohsenMhm\CodeGenerator\Commands\RegenerateViewsCommand;
-use MohsenMhm\CodeGenerator\Commands\CodeGenerateCommand;
+use MohsenMhm\CodeGenerator\Commands\GenerateSeederCommand;
+use MohsenMhm\CodeGenerator\Commands\GenerateRequestCommand;
 
 class CodeGeneratorServiceProvider extends ServiceProvider
 {
@@ -47,8 +48,9 @@ class CodeGeneratorServiceProvider extends ServiceProvider
                 GenerateFactoryCommand::class,
                 GenerateRollbackCommand::class,
                 GenerateViewsCommand::class,
+                GenerateSeederCommand::class,
+                GenerateRequestCommand::class,
                 RegenerateViewsCommand::class,
-                CodeGenerateCommand::class,
             ]);
 
             $this->publishes([
