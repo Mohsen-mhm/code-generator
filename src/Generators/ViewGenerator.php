@@ -29,7 +29,7 @@ class ViewGenerator extends BaseGenerator
             'viewName' => $viewName,
             'routeName' => $viewName,
         ];
-        $indexContents = $this->getStubContents('views.index', $indexReplacements);
+        $indexContents = $this->getStubContents('view-index', $indexReplacements);
         
         // Generate create view
         $createPath = $viewPath . '/create.blade.php';
@@ -40,7 +40,7 @@ class ViewGenerator extends BaseGenerator
             'routeName' => $viewName,
             'fields' => $this->generateFormFields($this->parseSchema($this->schema)),
         ];
-        $createContents = $this->getStubContents('views.create', $createReplacements);
+        $createContents = $this->getStubContents('view-create', $createReplacements);
         
         // Generate edit view
         $editPath = $viewPath . '/edit.blade.php';
@@ -51,7 +51,7 @@ class ViewGenerator extends BaseGenerator
             'routeName' => $viewName,
             'fields' => $this->generateFormFields($this->parseSchema($this->schema), true),
         ];
-        $editContents = $this->getStubContents('views.edit', $editReplacements);
+        $editContents = $this->getStubContents('view-edit', $editReplacements);
         
         // Generate show view
         $showPath = $viewPath . '/show.blade.php';
@@ -62,7 +62,7 @@ class ViewGenerator extends BaseGenerator
             'routeName' => $viewName,
             'fields' => $this->generateShowFields($this->parseSchema($this->schema)),
         ];
-        $showContents = $this->getStubContents('views.show', $showReplacements);
+        $showContents = $this->getStubContents('view-show', $showReplacements);
         
         // Write files
         $files = [

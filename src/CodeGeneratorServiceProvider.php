@@ -33,21 +33,21 @@ class CodeGeneratorServiceProvider extends ServiceProvider
                 GenerateRollbackCommand::class,
                 GenerateViewsCommand::class,
             ]);
-
+            
             $this->publishes([
-                __DIR__.'/../config/code-generator.php' => config_path('code-generator.php'),
-            ], 'code-generator-config');
-
-            $this->publishes([
-                __DIR__.'/Stubs' => resource_path('stubs/vendor/code-generator'),
+                __DIR__ . '/Stubs' => resource_path('stubs/vendor/code-generator'),
             ], 'code-generator-stubs');
+            
+            $this->publishes([
+                __DIR__ . '/../config/code-generator.php' => config_path('code-generator.php'),
+            ], 'code-generator-config');
         }
     }
-
+    
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../config/code-generator.php', 'code-generator'
+            __DIR__ . '/../config/code-generator.php', 'code-generator'
         );
     }
 } 
