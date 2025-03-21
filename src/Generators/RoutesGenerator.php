@@ -23,46 +23,54 @@ class RoutesGenerator extends BaseGenerator
             return false;
         }
         
-        // Check if route already exists
-        $routeContent = File::get($routesPath);
+        // Generate route definition
+        $routeDefinition = $this->generateRouteDefinition($routeName, $controllerName, $isApi);
         $controllerClass = $this->getNamespace('controller') . '\\' . $controllerName;
         
-        if (Str::contains($routeContent, $controllerClass) && !($this->options['force'] ?? false)) {
-            $this->info("Routes for [{$controllerClass}] already exist. Use --force to overwrite.");
+        // Check if route already exists
+        $routeContent = File::get($routesPath);
+        
+        // Check for exact route definition
+        if (Str::contains($routeContent, $routeDefinition) && !($this->options['force'] ?? false)) {
+            $this->info("Route for [{$routeName}] already exists. Use --force to overwrite.");
             return false;
         }
         
-        // Generate route content
-        $routeDefinition = $this->generateRouteDefinition($routeName, $controllerName, $isApi);
+        // Check for controller reference to avoid duplicates
+        if (Str::contains($routeContent, $controllerClass) && !($this->options['force'] ?? false)) {
+            $this->info("Route for controller [{$controllerClass}] already exists. Use --force to overwrite.");
+            return false;
+        }
+        
+        // If force option is used, remove existing routes for this controller
+        if ($this->options['force'] ?? false) {
+            $routeContent = $this->removeExistingRoutes($routeContent, $routeName, $controllerClass);
+        }
         
         // Check if we already have a middleware group for this type
         $middlewareGroup = $isApi ? "['api']" : "['web']";
-        $groupPattern = "/Route::middleware\({$middlewareGroup}\)->group\(function \(\) {.*?}\);/s";
+        $hasExistingGroup = Str::contains($routeContent, "Route::middleware({$middlewareGroup})");
         
-        if (preg_match($groupPattern, $routeContent)) {
-            // Add to existing group
-            $routeContent = preg_replace_callback(
-                $groupPattern,
-                function ($matches) use ($routeDefinition) {
-                    // Check if the group is empty
-                    if (strpos($matches[0], "function () {\n}") !== false) {
-                        // Replace empty group with new content
-                        return str_replace("function () {\n}", "function () {\n    {$routeDefinition}\n}", $matches[0]);
-                    }
-                    
-                    // Insert before the closing bracket
-                    $lastBrace = strrpos($matches[0], '}');
-                    $before = substr($matches[0], 0, $lastBrace);
-                    $after = substr($matches[0], $lastBrace);
-                    
-                    return $before . "    {$routeDefinition}\n" . $after;
-                },
-                $routeContent
-            );
+        if ($hasExistingGroup) {
+            // Find the last middleware group of this type
+            $lastGroupPos = strrpos($routeContent, "Route::middleware({$middlewareGroup})");
+            $endPos = strpos($routeContent, "});", $lastGroupPos);
+            
+            if ($endPos !== false) {
+                // Insert before the closing bracket of the last group
+                $routeContent = substr_replace(
+                    $routeContent,
+                    "    {$routeDefinition}\n    ",
+                    $endPos,
+                    0
+                );
+            } else {
+                // Fallback: add new group
+                $routeContent .= "\n\nRoute::middleware({$middlewareGroup})->group(function () {\n    {$routeDefinition}\n});\n";
+            }
         } else {
             // Create new group
-            $newGroup = "Route::middleware({$middlewareGroup})->group(function () {\n    {$routeDefinition}\n});\n";
-            $routeContent .= "\n" . $newGroup;
+            $routeContent .= "\n\nRoute::middleware({$middlewareGroup})->group(function () {\n    {$routeDefinition}\n});\n";
         }
         
         // Write to file
@@ -89,5 +97,42 @@ class RoutesGenerator extends BaseGenerator
         }
         
         return "Route::resource('{$routeName}', {$controllerClass});";
+    }
+    
+    /**
+     * Remove existing routes for the given controller.
+     *
+     * @param string $content
+     * @param string $routeName
+     * @param string $controllerClass
+     * @return string
+     */
+    protected function removeExistingRoutes($content, $routeName, $controllerClass)
+    {
+        // Pattern to match resource route definitions
+        $patterns = [
+            "/Route::resource\(['\"]" . preg_quote($routeName, '/') . "['\"],\s*" . preg_quote($controllerClass, '/') . ".*?\);/",
+            "/Route::apiResource\(['\"]" . preg_quote($routeName, '/') . "['\"],\s*" . preg_quote($controllerClass, '/') . ".*?\);/",
+        ];
+        
+        foreach ($patterns as $pattern) {
+            $content = preg_replace($pattern, '', $content);
+        }
+        
+        // Clean up empty route groups
+        $emptyGroupPatterns = [
+            "/Route::middleware\(\[.*?\]\)->group\(function \(\) {\s*\n\s*}\);/",
+            "/Route::prefix\(['\"].*?['\"]\)->middleware\(\[.*?\]\)->group\(function \(\) {\s*\n\s*}\);/",
+            "/Route::group\(\[.*?\], function \(\) {\s*\n\s*}\);/",
+        ];
+        
+        foreach ($emptyGroupPatterns as $pattern) {
+            $content = preg_replace($pattern, '', $content);
+        }
+        
+        // Remove any double blank lines
+        $content = preg_replace("/\n\s*\n\s*\n/", "\n\n", $content);
+        
+        return $content;
     }
 } 
