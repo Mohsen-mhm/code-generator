@@ -84,4 +84,22 @@ return [
         'resources' => true,
         'documentation' => true,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes Options
+    |--------------------------------------------------------------------------
+    |
+    | Configure how routes should be generated.
+    |
+    */
+    'routes' => [
+        'enabled' => true,
+        'file' => 'routes/web.php',
+        'api_file' => 'routes/api.php',
+        'prefix' => false,
+        'middleware' => ['web'],
+        'api_middleware' => ['api'],
+        'api_version_prefix' => 'v1',
+    ],
 ]; 

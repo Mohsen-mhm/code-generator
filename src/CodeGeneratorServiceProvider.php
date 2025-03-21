@@ -9,6 +9,7 @@ use MohsenMhm\CodeGenerator\Commands\GenerateModelCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateLivewireCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateMigrationCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateResourceCommand;
+use MohsenMhm\CodeGenerator\Commands\GenerateRoutesCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateTestCommand;
 
 class CodeGeneratorServiceProvider extends ServiceProvider
@@ -23,6 +24,7 @@ class CodeGeneratorServiceProvider extends ServiceProvider
                 GenerateLivewireCommand::class,
                 GenerateMigrationCommand::class,
                 GenerateResourceCommand::class,
+                GenerateRoutesCommand::class,
                 GenerateTestCommand::class,
             ]);
 

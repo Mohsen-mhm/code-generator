@@ -115,6 +115,14 @@ php artisan generate:resource {name} --schema="field1:type1,field2:type2:modifie
 php artisan generate:test {name} --model=ModelName --feature
 ```
 
+#### Generate Routes
+
+```bash
+php artisan generate:routes {name} --api
+```
+
+This will add resource routes to your web.php or api.php file.
+
 ### Schema Format
 
 The schema format follows a simple pattern:

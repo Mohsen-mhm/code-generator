@@ -9,6 +9,7 @@ use MohsenMhm\CodeGenerator\Generators\LivewireGenerator;
 use MohsenMhm\CodeGenerator\Generators\MigrationGenerator;
 use MohsenMhm\CodeGenerator\Generators\ModelGenerator;
 use MohsenMhm\CodeGenerator\Generators\ResourceGenerator;
+use MohsenMhm\CodeGenerator\Generators\RoutesGenerator;
 use MohsenMhm\CodeGenerator\Generators\TestGenerator;
 
 class GenerateCommand extends Command
@@ -22,6 +23,7 @@ class GenerateCommand extends Command
                             {--resource : Generate an API resource} 
                             {--livewire : Generate a Livewire component} 
                             {--test : Generate tests} 
+                            {--routes : Generate routes}
                             {--api : Generate API components} 
                             {--force : Overwrite existing files}';
 
@@ -61,6 +63,10 @@ class GenerateCommand extends Command
         
         if ($all || $this->option('test')) {
             $this->generateTest($name, $schema, $options);
+        }
+        
+        if ($all || $this->option('routes')) {
+            $this->generateRoutes($name, $options);
         }
         
         return 0;
@@ -146,6 +152,15 @@ class GenerateCommand extends Command
             ->setCommand($this)
             ->setName($testName)
             ->setSchema($schema)
+            ->setOptions($options)
+            ->generate();
+    }
+    
+    protected function generateRoutes($name, $options)
+    {
+        app(RoutesGenerator::class)
+            ->setCommand($this)
+            ->setName($name)
             ->setOptions($options)
             ->generate();
     }
