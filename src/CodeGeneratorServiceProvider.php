@@ -14,10 +14,24 @@ use MohsenMhm\CodeGenerator\Commands\GenerateTestCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateFactoryCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateRollbackCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateViewsCommand;
+use MohsenMhm\CodeGenerator\Commands\RegenerateViewsCommand;
 
 class CodeGeneratorServiceProvider extends ServiceProvider
 {
-    public function boot()
+    /**
+     * Register services.
+     */
+    public function register(): void
+    {
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/code-generator.php', 'code-generator'
+        );
+    }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -32,6 +46,7 @@ class CodeGeneratorServiceProvider extends ServiceProvider
                 GenerateFactoryCommand::class,
                 GenerateRollbackCommand::class,
                 GenerateViewsCommand::class,
+                RegenerateViewsCommand::class,
             ]);
             
             $this->publishes([
@@ -40,14 +55,7 @@ class CodeGeneratorServiceProvider extends ServiceProvider
             
             $this->publishes([
                 __DIR__ . '/../config/code-generator.php' => config_path('code-generator.php'),
-            ], 'code-generator-config');
+            ], 'config');
         }
-    }
-    
-    public function register()
-    {
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/code-generator.php', 'code-generator'
-        );
     }
 } 

@@ -13,189 +13,98 @@ use MohsenMhm\CodeGenerator\Generators\RoutesGenerator;
 use MohsenMhm\CodeGenerator\Generators\TestGenerator;
 use MohsenMhm\CodeGenerator\Generators\FactoryGenerator;
 use MohsenMhm\CodeGenerator\Generators\ViewGenerator;
+use MohsenMhm\CodeGenerator\Generators\RequestGenerator;
+use MohsenMhm\CodeGenerator\Generators\SeederGenerator;
 
 class GenerateCommand extends Command
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
     protected $signature = 'generate {name} 
                             {--schema=} 
-                            {--all : Generate all components} 
-                            {--model : Generate a model} 
+                            {--all : Generate all files} 
                             {--controller : Generate a controller} 
+                            {--model : Generate a model} 
                             {--migration : Generate a migration} 
-                            {--factory : Generate a factory}
-                            {--resource : Generate an API resource} 
-                            {--livewire : Generate a Livewire component} 
-                            {--test : Generate tests} 
-                            {--routes : Generate routes}
-                            {--api : Generate API components} 
-                            {--views : Generate views}
+                            {--factory : Generate a factory} 
+                            {--seeder : Generate a seeder} 
+                            {--resource : Generate a resource} 
+                            {--request : Generate a form request} 
+                            {--test : Generate a test} 
+                            {--view : Generate views} 
+                            {--api : Generate API controller and resource} 
                             {--force : Overwrite existing files}';
 
-    protected $description = 'Generate multiple components for your Laravel application';
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Generate code files based on a schema';
 
+    /**
+     * Execute the console command.
+     */
     public function handle()
     {
         $name = $this->argument('name');
         $schema = $this->option('schema');
-        $all = $this->option('all');
-        $force = $this->option('force');
-        
         $options = [
-            'force' => $force,
+            'force' => $this->option('force'),
             'api' => $this->option('api'),
+            'model' => $name,
         ];
-        
+
+        $all = $this->option('all');
+
         if ($all || $this->option('model')) {
-            $this->generateModel($name, $schema, $options);
+            $generator = new ModelGenerator($name, $schema, $options);
+            $generator->generate();
         }
-        
-        if ($all || $this->option('migration')) {
-            $this->generateMigration($name, $schema, $options);
-        }
-        
+
         if ($all || $this->option('controller')) {
-            $this->generateController($name, $schema, $options);
+            $generator = new ControllerGenerator($name, $schema, $options);
+            $generator->generate();
         }
-        
-        if ($all || $this->option('resource')) {
-            $this->generateResource($name, $schema, $options);
+
+        if ($all || $this->option('migration')) {
+            $generator = new MigrationGenerator($name, $schema, $options);
+            $generator->generate();
         }
-        
-        if ($all || $this->option('livewire')) {
-            $this->generateLivewire($name, $schema, $options);
-        }
-        
-        if ($all || $this->option('test')) {
-            $this->generateTest($name, $schema, $options);
-        }
-        
-        if ($all || $this->option('routes')) {
-            $this->generateRoutes($name, $options);
-        }
-        
+
         if ($all || $this->option('factory')) {
-            $this->generateFactory($name, $schema, $options);
+            $generator = new FactoryGenerator($name, $schema, $options);
+            $generator->generate();
         }
-        
-        if ($all || $this->option('views')) {
-            $this->generateViews($name, $schema, $options);
+
+        if ($all || $this->option('seeder')) {
+            $generator = new SeederGenerator($name, $schema, $options);
+            $generator->generate();
         }
-        
-        return 0;
-    }
-    
-    protected function generateModel($name, $schema, $options)
-    {
-        $modelName = Str::singular(Str::studly($name));
-        
-        app(ModelGenerator::class)
-            ->setCommand($this)
-            ->setName($modelName)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-    }
-    
-    protected function generateMigration($name, $schema, $options)
-    {
-        $modelName = Str::singular(Str::studly($name));
-        
-        app(MigrationGenerator::class)
-            ->setCommand($this)
-            ->setName($modelName)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-    }
-    
-    protected function generateController($name, $schema, $options)
-    {
-        $controllerName = Str::studly($name);
-        
-        if (!Str::endsWith($controllerName, 'Controller')) {
-            $controllerName .= 'Controller';
+
+        if ($all || $this->option('resource')) {
+            $generator = new ResourceGenerator($name, $schema, $options);
+            $generator->generate();
         }
-        
-        app(ControllerGenerator::class)
-            ->setCommand($this)
-            ->setName($controllerName)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-    }
-    
-    protected function generateResource($name, $schema, $options)
-    {
-        $resourceName = Str::singular(Str::studly($name));
-        
-        if (!Str::endsWith($resourceName, 'Resource')) {
-            $resourceName .= 'Resource';
+
+        if ($all || $this->option('request')) {
+            $generator = new RequestGenerator($name, $schema, $options);
+            $generator->generate();
         }
-        
-        app(ResourceGenerator::class)
-            ->setCommand($this)
-            ->setName($resourceName)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-    }
-    
-    protected function generateLivewire($name, $schema, $options)
-    {
-        $componentName = Str::studly($name);
-        
-        app(LivewireGenerator::class)
-            ->setCommand($this)
-            ->setName($componentName)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-    }
-    
-    protected function generateTest($name, $schema, $options)
-    {
-        $testName = Str::studly($name);
-        
-        if (!Str::endsWith($testName, 'Test')) {
-            $testName .= 'Test';
+
+        if ($all || $this->option('test')) {
+            $generator = new TestGenerator($name, $schema, $options);
+            $generator->generate();
         }
-        
-        app(TestGenerator::class)
-            ->setCommand($this)
-            ->setName($testName)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-    }
-    
-    protected function generateRoutes($name, $options)
-    {
-        app(RoutesGenerator::class)
-            ->setCommand($this)
-            ->setName($name)
-            ->setOptions($options)
-            ->generate();
-    }
-    
-    protected function generateFactory($name, $schema, $options)
-    {
-        $factoryName = Str::studly($name);
-        
-        app(FactoryGenerator::class)
-            ->setCommand($this)
-            ->setName($factoryName)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
-    }
-    
-    protected function generateViews($name, $schema, $options)
-    {
-        app(ViewGenerator::class)
-            ->setCommand($this)
-            ->setName($name)
-            ->setSchema($schema)
-            ->setOptions($options)
-            ->generate();
+
+        if ($all || $this->option('view')) {
+            $generator = new ViewGenerator($name, $schema, $options);
+            $generator->generate();
+        }
+
+        $this->info('Code generation completed!');
     }
 } 
