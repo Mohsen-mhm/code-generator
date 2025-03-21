@@ -12,7 +12,7 @@ class FactoryGenerator extends BaseGenerator
         $factoryName = $modelName . 'Factory';
         $modelNamespace = $this->getNamespace('model');
         
-        $factoryPath = $this->getPath('factory') . '/' . $factoryName . '.php';
+        $factoryPath = $this->getPath('factories') . '/' . $factoryName . '.php';
         
         // Parse schema to find fields
         $fields = $this->parseSchema($this->schema);
