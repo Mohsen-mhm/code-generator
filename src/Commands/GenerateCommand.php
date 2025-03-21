@@ -12,6 +12,7 @@ use MohsenMhm\CodeGenerator\Generators\ResourceGenerator;
 use MohsenMhm\CodeGenerator\Generators\RoutesGenerator;
 use MohsenMhm\CodeGenerator\Generators\TestGenerator;
 use MohsenMhm\CodeGenerator\Generators\FactoryGenerator;
+use MohsenMhm\CodeGenerator\Generators\ViewGenerator;
 
 class GenerateCommand extends Command
 {
@@ -27,6 +28,7 @@ class GenerateCommand extends Command
                             {--test : Generate tests} 
                             {--routes : Generate routes}
                             {--api : Generate API components} 
+                            {--views : Generate views}
                             {--force : Overwrite existing files}';
 
     protected $description = 'Generate multiple components for your Laravel application';
@@ -73,6 +75,10 @@ class GenerateCommand extends Command
         
         if ($all || $this->option('factory')) {
             $this->generateFactory($name, $schema, $options);
+        }
+        
+        if ($all || $this->option('views')) {
+            $this->generateViews($name, $schema, $options);
         }
         
         return 0;
@@ -178,6 +184,16 @@ class GenerateCommand extends Command
         app(FactoryGenerator::class)
             ->setCommand($this)
             ->setName($factoryName)
+            ->setSchema($schema)
+            ->setOptions($options)
+            ->generate();
+    }
+    
+    protected function generateViews($name, $schema, $options)
+    {
+        app(ViewGenerator::class)
+            ->setCommand($this)
+            ->setName($name)
             ->setSchema($schema)
             ->setOptions($options)
             ->generate();

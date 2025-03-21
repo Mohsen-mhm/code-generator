@@ -1,0 +1,29 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container mx-auto px-4 py-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">View {{ modelName }}</h1>
+        <div>
+            <a href="{{ route('{{ routeName }}.edit', ${{ modelVariable }}->id) }}" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mr-2">
+                Edit
+            </a>
+            <a href="{{ route('{{ routeName }}.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        {{ fields }}
+        
+        <form action="{{ route('{{ routeName }}.destroy', ${{ modelVariable }}->id) }}" method="POST" class="mt-6">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" onclick="return confirm('Are you sure you want to delete this item?')">
+                Delete
+            </button>
+        </form>
+    </div>
+</div>
+@endsection 

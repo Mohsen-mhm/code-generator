@@ -3,66 +3,91 @@
 namespace MohsenMhm\CodeGenerator\Generators;
 
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\File;
 
 class RoutesGenerator extends BaseGenerator
 {
     public function generate()
     {
-        if (!config('code-generator.routes.enabled', true)) {
-            return false;
-        }
-        
         $modelName = $this->options['model'] ?? $this->name;
         $controllerName = $this->options['controller'] ?? $modelName . 'Controller';
+        $routeName = Str::kebab(Str::pluralStudly($modelName));
+        
         $isApi = $this->options['api'] ?? false;
+        $routesFile = $isApi ? 'api.php' : 'web.php';
+        $routesPath = base_path("routes/{$routesFile}");
         
-        $routeFile = $isApi 
-            ? base_path(config('code-generator.routes.api_file', 'routes/api.php'))
-            : base_path(config('code-generator.routes.file', 'routes/web.php'));
-            
-        $resourceName = Str::kebab(Str::pluralStudly($modelName));
-        $controllerClass = $this->getNamespace('controller') . '\\' . $controllerName;
-        
-        // Prepare route definition
-        if ($isApi) {
-            $prefix = config('code-generator.routes.api_version_prefix');
-            $middleware = implode("', '", config('code-generator.routes.api_middleware', ['api']));
-            
-            $routeDefinition = PHP_EOL . "Route::prefix('{$prefix}')->middleware(['{$middleware}'])->group(function () {" . PHP_EOL;
-            $routeDefinition .= "    Route::apiResource('{$resourceName}', \\{$controllerClass}::class);" . PHP_EOL;
-            $routeDefinition .= "});" . PHP_EOL;
-        } else {
-            $middleware = implode("', '", config('code-generator.routes.middleware', ['web']));
-            
-            if (config('code-generator.routes.prefix')) {
-                $routeDefinition = PHP_EOL . "Route::prefix('{$resourceName}')->middleware(['{$middleware}'])->group(function () {" . PHP_EOL;
-                $routeDefinition .= "    Route::resource('{$resourceName}', \\{$controllerClass}::class);" . PHP_EOL;
-                $routeDefinition .= "});" . PHP_EOL;
-            } else {
-                $routeDefinition = PHP_EOL . "Route::middleware(['{$middleware}'])->group(function () {" . PHP_EOL;
-                $routeDefinition .= "    Route::resource('{$resourceName}', \\{$controllerClass}::class);" . PHP_EOL;
-                $routeDefinition .= "});" . PHP_EOL;
-            }
-        }
-        
-        // Check if route file exists
-        if (!$this->filesystem->exists($routeFile)) {
-            $this->error("Route file {$routeFile} does not exist.");
+        // Check if routes file exists
+        if (!File::exists($routesPath)) {
+            $this->error("Routes file [{$routesFile}] does not exist.");
             return false;
         }
         
         // Check if route already exists
-        $routeContents = $this->filesystem->get($routeFile);
-        if (Str::contains($routeContents, "Route::resource('{$resourceName}'") || 
-            Str::contains($routeContents, "Route::apiResource('{$resourceName}'")) {
-            $this->info("Routes for {$resourceName} already exist in {$routeFile}.");
+        $routeContent = File::get($routesPath);
+        $controllerClass = $this->getNamespace('controller') . '\\' . $controllerName;
+        
+        if (Str::contains($routeContent, $controllerClass) && !($this->options['force'] ?? false)) {
+            $this->info("Routes for [{$controllerClass}] already exist. Use --force to overwrite.");
             return false;
         }
         
-        // Append route to file
-        $this->filesystem->append($routeFile, $routeDefinition);
-        $this->info("Routes for {$resourceName} added to {$routeFile}.");
+        // Generate route content
+        $routeDefinition = $this->generateRouteDefinition($routeName, $controllerName, $isApi);
         
+        // Check if we already have a middleware group for this type
+        $middlewareGroup = $isApi ? "['api']" : "['web']";
+        $groupPattern = "/Route::middleware\({$middlewareGroup}\)->group\(function \(\) {.*?}\);/s";
+        
+        if (preg_match($groupPattern, $routeContent)) {
+            // Add to existing group
+            $routeContent = preg_replace_callback(
+                $groupPattern,
+                function ($matches) use ($routeDefinition) {
+                    // Check if the group is empty
+                    if (strpos($matches[0], "function () {\n}") !== false) {
+                        // Replace empty group with new content
+                        return str_replace("function () {\n}", "function () {\n    {$routeDefinition}\n}", $matches[0]);
+                    }
+                    
+                    // Insert before the closing bracket
+                    $lastBrace = strrpos($matches[0], '}');
+                    $before = substr($matches[0], 0, $lastBrace);
+                    $after = substr($matches[0], $lastBrace);
+                    
+                    return $before . "    {$routeDefinition}\n" . $after;
+                },
+                $routeContent
+            );
+        } else {
+            // Create new group
+            $newGroup = "Route::middleware({$middlewareGroup})->group(function () {\n    {$routeDefinition}\n});\n";
+            $routeContent .= "\n" . $newGroup;
+        }
+        
+        // Write to file
+        File::put($routesPath, $routeContent);
+        
+        $this->info("Routes for [{$controllerName}] added successfully.");
         return true;
+    }
+    
+    /**
+     * Generate route definition.
+     *
+     * @param string $routeName
+     * @param string $controllerName
+     * @param bool $isApi
+     * @return string
+     */
+    protected function generateRouteDefinition($routeName, $controllerName, $isApi)
+    {
+        $controllerClass = $this->getNamespace('controller') . '\\' . $controllerName . '::class';
+        
+        if ($isApi) {
+            return "Route::apiResource('{$routeName}', {$controllerClass});";
+        }
+        
+        return "Route::resource('{$routeName}', {$controllerClass});";
     }
 } 

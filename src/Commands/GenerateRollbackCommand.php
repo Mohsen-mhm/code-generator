@@ -18,6 +18,7 @@ class GenerateRollbackCommand extends Command
                             {--livewire : Delete Livewire component} 
                             {--test : Delete tests} 
                             {--routes : Remove routes}
+                            {--views : Delete views}
                             {--force : Force deletion without confirmation}';
 
     protected $description = 'Rollback and delete generated files';
@@ -66,11 +67,11 @@ class GenerateRollbackCommand extends Command
         if ($all || $this->option('migration')) {
             $tableName = Str::snake(Str::pluralStudly($name));
             $migrationPattern = database_path("migrations/*_create_{$tableName}_table.php");
-            $migrations = File::glob($migrationPattern);
+            $migrationFiles = glob($migrationPattern);
             
-            foreach ($migrations as $migration) {
-                File::delete($migration);
-                $deleted[] = "Migration: {$migration}";
+            foreach ($migrationFiles as $migrationFile) {
+                File::delete($migrationFile);
+                $deleted[] = "Migration: {$migrationFile}";
             }
         }
         
@@ -85,7 +86,7 @@ class GenerateRollbackCommand extends Command
             }
         }
         
-        // Delete API resource
+        // Delete resource
         if ($all || $this->option('resource')) {
             $resourceName = Str::studly($name) . 'Resource';
             $resourcePath = app_path("Http/Resources/{$resourceName}.php");
@@ -93,13 +94,6 @@ class GenerateRollbackCommand extends Command
             if (File::exists($resourcePath)) {
                 File::delete($resourcePath);
                 $deleted[] = "Resource: {$resourcePath}";
-            }
-            
-            // Also check for collection resource
-            $collectionPath = app_path("Http/Resources/{$resourceName}Collection.php");
-            if (File::exists($collectionPath)) {
-                File::delete($collectionPath);
-                $deleted[] = "Resource Collection: {$collectionPath}";
             }
         }
         
@@ -110,34 +104,42 @@ class GenerateRollbackCommand extends Command
             
             if (File::exists($livewirePath)) {
                 File::delete($livewirePath);
-                $deleted[] = "Livewire Component: {$livewirePath}";
+                $deleted[] = "Livewire: {$livewirePath}";
             }
             
-            // Also delete the view
-            $viewName = Str::kebab($name);
-            $viewPath = resource_path("views/livewire/{$viewName}.blade.php");
-            if (File::exists($viewPath)) {
-                File::delete($viewPath);
-                $deleted[] = "Livewire View: {$viewPath}";
+            $livewireViewPath = resource_path("views/livewire/" . Str::kebab($livewireName) . ".blade.php");
+            
+            if (File::exists($livewireViewPath)) {
+                File::delete($livewireViewPath);
+                $deleted[] = "Livewire View: {$livewireViewPath}";
             }
         }
         
         // Delete tests
         if ($all || $this->option('test')) {
             $testName = Str::studly($name) . 'Test';
-            
-            // Feature test
             $featureTestPath = base_path("tests/Feature/{$testName}.php");
+            $unitTestPath = base_path("tests/Unit/{$testName}.php");
+            
             if (File::exists($featureTestPath)) {
                 File::delete($featureTestPath);
                 $deleted[] = "Feature Test: {$featureTestPath}";
             }
             
-            // Unit test
-            $unitTestPath = base_path("tests/Unit/{$testName}.php");
             if (File::exists($unitTestPath)) {
                 File::delete($unitTestPath);
                 $deleted[] = "Unit Test: {$unitTestPath}";
+            }
+        }
+        
+        // Delete views
+        if ($all || $this->option('views')) {
+            $viewName = Str::kebab(Str::pluralStudly($name));
+            $viewPath = resource_path("views/{$viewName}");
+            
+            if (File::isDirectory($viewPath)) {
+                File::deleteDirectory($viewPath);
+                $deleted[] = "Views: {$viewPath}";
             }
         }
         
@@ -146,18 +148,19 @@ class GenerateRollbackCommand extends Command
             $resourceName = Str::kebab(Str::pluralStudly($name));
             $controllerName = Str::studly($name) . 'Controller';
             
-            // Web routes
             $webRoutesPath = base_path('routes/web.php');
+            $apiRoutesPath = base_path('routes/api.php');
+            
             if (File::exists($webRoutesPath)) {
                 $this->removeRoutes($webRoutesPath, $resourceName, $controllerName);
-                $deleted[] = "Routes removed from: {$webRoutesPath}";
+                $this->cleanEmptyRouteGroups($webRoutesPath);
+                $deleted[] = "Routes: Removed from web.php";
             }
             
-            // API routes
-            $apiRoutesPath = base_path('routes/api.php');
             if (File::exists($apiRoutesPath)) {
                 $this->removeRoutes($apiRoutesPath, $resourceName, $controllerName);
-                $deleted[] = "Routes removed from: {$apiRoutesPath}";
+                $this->cleanEmptyRouteGroups($apiRoutesPath);
+                $deleted[] = "Routes: Removed from api.php";
             }
         }
         
@@ -213,6 +216,30 @@ class GenerateRollbackCommand extends Command
         }
         
         foreach ($groupPatterns as $pattern) {
+            $content = preg_replace($pattern, '', $content);
+        }
+        
+        // Remove any double blank lines
+        $content = preg_replace("/\n\s*\n\s*\n/", "\n\n", $content);
+        
+        File::put($routesPath, $content);
+    }
+    
+    /**
+     * Clean up empty route groups.
+     */
+    protected function cleanEmptyRouteGroups($routesPath)
+    {
+        $content = File::get($routesPath);
+        
+        // Pattern to match empty route groups
+        $emptyGroupPatterns = [
+            "/Route::middleware\(\[.*?\]\)->group\(function \(\) {\s*\n\s*}\);/",
+            "/Route::prefix\(['\"].*?['\"]\)->middleware\(\[.*?\]\)->group\(function \(\) {\s*\n\s*}\);/",
+            "/Route::group\(\[.*?\], function \(\) {\s*\n\s*}\);/",
+        ];
+        
+        foreach ($emptyGroupPatterns as $pattern) {
             $content = preg_replace($pattern, '', $content);
         }
         
