@@ -141,12 +141,12 @@ class FactoryGenerator extends BaseGenerator
                 return '$this->faker->date()';
             case 'dateTime':
             case 'timestamp':
-                return '$this->faker->dateTime()';
+                return '$this->faker->dateTime()->format(\'Y-m-d H:i:s\')';
             case 'time':
                 return '$this->faker->time()';
             case 'json':
             case 'jsonb':
-                return '[]';
+                return '\'{"key": "value"}\'';
             default:
                 return '$this->faker->word()';
         }

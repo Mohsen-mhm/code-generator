@@ -45,6 +45,11 @@ class {{ class }} extends TestCase
         $data = array_filter($data, function($value) {
             return is_scalar($value) || is_null($value);
         });
+        
+        // Make sure we have at least one field for testing
+        if (empty($data)) {
+            $data = ['name' => 'Test Name'];
+        }
 
         // Submit the form
         $response = $this->post(route('{{ routeName }}.store'), $data);
@@ -93,6 +98,11 @@ class {{ class }} extends TestCase
         $data = array_filter($data, function($value) {
             return is_scalar($value) || is_null($value);
         });
+        
+        // Make sure we have at least one field for testing
+        if (empty($data)) {
+            $data = ['name' => 'Updated Name'];
+        }
 
         // Submit the form
         $response = $this->put(route('{{ routeName }}.update', ${{ modelVariable }}->id), $data);
