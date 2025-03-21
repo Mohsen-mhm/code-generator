@@ -23,9 +23,6 @@ class RoutesGenerator extends BaseGenerator
         $resourceName = Str::kebab(Str::pluralStudly($modelName));
         $controllerClass = $this->getNamespace('controller') . '\\' . $controllerName;
         
-        // Remove App\ from the beginning if it exists
-        $controllerClass = str_replace('App\\', '', $controllerClass);
-        
         // Prepare route definition
         if ($isApi) {
             $prefix = config('code-generator.routes.api_version_prefix');

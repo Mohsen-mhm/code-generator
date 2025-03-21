@@ -26,6 +26,7 @@ return [
         'migrations' => database_path('migrations'),
         'resources' => app_path('Http/Resources'),
         'tests' => base_path('tests'),
+        'factories' => database_path('factories'),
     ],
 
     /*

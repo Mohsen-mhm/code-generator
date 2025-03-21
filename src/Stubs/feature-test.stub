@@ -3,6 +3,7 @@
 namespace {{ namespace }};
 
 use {{ modelNamespace }};
+use {{ controllerNamespace }}\{{ model }}Controller;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -38,9 +39,7 @@ class {{ class }} extends TestCase
         $response->assertStatus(200);
 
         // Prepare data for submission
-        $data = [
-            // Add test data based on your schema
-        ];
+        $data = {{ model }}::factory()->make()->toArray();
 
         // Submit the form
         $response = $this->post(route('{{ routeName }}.store'), $data);
@@ -83,9 +82,7 @@ class {{ class }} extends TestCase
         $response->assertStatus(200);
 
         // Prepare data for submission
-        $data = [
-            // Add test data based on your schema
-        ];
+        $data = {{ model }}::factory()->make()->toArray();
 
         // Submit the form
         $response = $this->put(route('{{ routeName }}.update', ${{ modelVariable }}->id), $data);

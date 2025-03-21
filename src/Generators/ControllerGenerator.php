@@ -17,14 +17,16 @@ class ControllerGenerator extends BaseGenerator
         $controllerNamespace = $this->getNamespace('controller');
         $controllerPath = $this->getPath('controllers') . '/' . $controllerName . '.php';
         
-        $modelName = $this->options['model'] ?? Str::singular(str_replace('Controller', '', $controllerName));
+        $modelName = $this->options['model'] ?? str_replace('Controller', '', $controllerName);
         $modelNamespace = $this->getNamespace('model') . '\\' . $modelName;
         $modelVariable = Str::camel($modelName);
+        $modelVariablePlural = Str::camel(Str::pluralStudly($modelName));
+        $viewPath = Str::kebab(Str::pluralStudly($modelName));
         
+        $isApi = $this->options['api'] ?? false;
         $resourceName = $this->options['resource'] ?? $modelName . 'Resource';
         $resourceNamespace = $this->getNamespace('resource') . '\\' . $resourceName;
         
-        $isApi = $this->options['api'] ?? false;
         $stubName = $isApi ? 'api-controller' : 'controller';
         
         $replacements = [
@@ -33,17 +35,29 @@ class ControllerGenerator extends BaseGenerator
             'model' => $modelName,
             'modelNamespace' => $modelNamespace,
             'modelVariable' => $modelVariable,
-            'modelVariablePlural' => Str::plural($modelVariable),
-            'resourceName' => $resourceName,
-            'resourceNamespace' => $resourceNamespace,
+            'modelVariablePlural' => $modelVariablePlural,
+            'viewPath' => $viewPath,
             'useResource' => $isApi ? "use {$resourceNamespace};" : '',
-            'viewPath' => Str::kebab(Str::plural(str_replace('Controller', '', $controllerName))),
+            'resourceName' => $resourceName,
         ];
         
         $contents = $this->getStubContents($stubName, $replacements);
         
         if ($this->writeFile($controllerPath, $contents)) {
             $this->info("Controller [{$controllerName}] created successfully.");
+            
+            // Generate routes if needed
+            if ($this->options['routes'] ?? config('code-generator.routes.enabled', true)) {
+                app(RoutesGenerator::class)
+                    ->setCommand($this->command)
+                    ->setName($modelName)
+                    ->setOptions([
+                        'controller' => $controllerName,
+                        'api' => $isApi,
+                    ])
+                    ->generate();
+            }
+            
             return true;
         }
         

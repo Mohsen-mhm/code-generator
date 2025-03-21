@@ -18,9 +18,12 @@ class TestGenerator extends BaseGenerator
         $isFeatureTest = $this->options['feature'] ?? true;
         $testPath = $this->getPath('tests') . '/' . ($isFeatureTest ? 'Feature' : 'Unit') . '/' . $testName . '.php';
         
-        $modelName = $this->options['model'] ?? Str::singular(str_replace('Test', '', $testName));
+        $modelName = $this->options['model'] ?? str_replace('Test', '', $testName);
         $modelNamespace = $this->getNamespace('model') . '\\' . $modelName;
         $modelVariable = Str::camel($modelName);
+        
+        // Get the full controller namespace
+        $controllerNamespace = $this->getNamespace('controller');
         
         $stubName = $isFeatureTest ? 'feature-test' : 'unit-test';
         
@@ -32,6 +35,7 @@ class TestGenerator extends BaseGenerator
             'modelVariable' => $modelVariable,
             'tableName' => Str::snake(Str::pluralStudly($modelName)),
             'routeName' => Str::kebab(Str::pluralStudly($modelName)),
+            'controllerNamespace' => $controllerNamespace,
         ];
         
         $contents = $this->getStubContents($stubName, $replacements);

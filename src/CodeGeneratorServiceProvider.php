@@ -11,6 +11,7 @@ use MohsenMhm\CodeGenerator\Commands\GenerateMigrationCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateResourceCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateRoutesCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateTestCommand;
+use MohsenMhm\CodeGenerator\Commands\GenerateFactoryCommand;
 
 class CodeGeneratorServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,7 @@ class CodeGeneratorServiceProvider extends ServiceProvider
                 GenerateResourceCommand::class,
                 GenerateRoutesCommand::class,
                 GenerateTestCommand::class,
+                GenerateFactoryCommand::class,
             ]);
 
             $this->publishes([

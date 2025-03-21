@@ -11,6 +11,7 @@ use MohsenMhm\CodeGenerator\Generators\ModelGenerator;
 use MohsenMhm\CodeGenerator\Generators\ResourceGenerator;
 use MohsenMhm\CodeGenerator\Generators\RoutesGenerator;
 use MohsenMhm\CodeGenerator\Generators\TestGenerator;
+use MohsenMhm\CodeGenerator\Generators\FactoryGenerator;
 
 class GenerateCommand extends Command
 {
@@ -20,6 +21,7 @@ class GenerateCommand extends Command
                             {--model : Generate a model} 
                             {--controller : Generate a controller} 
                             {--migration : Generate a migration} 
+                            {--factory : Generate a factory}
                             {--resource : Generate an API resource} 
                             {--livewire : Generate a Livewire component} 
                             {--test : Generate tests} 
@@ -67,6 +69,10 @@ class GenerateCommand extends Command
         
         if ($all || $this->option('routes')) {
             $this->generateRoutes($name, $options);
+        }
+        
+        if ($all || $this->option('factory')) {
+            $this->generateFactory($name, $schema, $options);
         }
         
         return 0;
@@ -161,6 +167,18 @@ class GenerateCommand extends Command
         app(RoutesGenerator::class)
             ->setCommand($this)
             ->setName($name)
+            ->setOptions($options)
+            ->generate();
+    }
+    
+    protected function generateFactory($name, $schema, $options)
+    {
+        $factoryName = Str::studly($name);
+        
+        app(FactoryGenerator::class)
+            ->setCommand($this)
+            ->setName($factoryName)
+            ->setSchema($schema)
             ->setOptions($options)
             ->generate();
     }
