@@ -270,8 +270,8 @@ abstract class BaseGenerator
      */
     protected function info($message)
     {
-        if (function_exists('info')) {
-            info($message);
+        if ($this->command) {
+            $this->command->info($message);
         } else {
             echo $message . PHP_EOL;
         }
@@ -285,8 +285,8 @@ abstract class BaseGenerator
      */
     protected function error($message)
     {
-        if (function_exists('error')) {
-            error($message);
+        if ($this->command) {
+            $this->command->error($message);
         } else {
             echo $message . PHP_EOL;
         }

@@ -62,46 +62,55 @@ class GenerateCommand extends Command
 
         if ($all || $this->option('model')) {
             $generator = new ModelGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 
         if ($all || $this->option('controller')) {
             $generator = new ControllerGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 
         if ($all || $this->option('migration')) {
             $generator = new MigrationGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 
         if ($all || $this->option('factory')) {
             $generator = new FactoryGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 
         if ($all || $this->option('seeder')) {
             $generator = new SeederGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 
         if ($all || $this->option('resource')) {
             $generator = new ResourceGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 
         if ($all || $this->option('request')) {
             $generator = new RequestGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 
         if ($all || $this->option('test')) {
             $generator = new TestGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 
         if ($all || $this->option('view')) {
             $generator = new ViewGenerator($name, $schema, $options);
+            $generator->setCommand($this);
             $generator->generate();
         }
 

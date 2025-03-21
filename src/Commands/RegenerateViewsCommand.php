@@ -51,6 +51,7 @@ class RegenerateViewsCommand extends Command
         
         // Regenerate views
         $generator = new ViewGenerator($model, $schema, ['force' => true]);
+        $generator->setCommand($this);
         $generator->generate();
         
         $this->info("Views regenerated for {$model}");
