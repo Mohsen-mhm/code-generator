@@ -47,6 +47,7 @@ class ControllerGenerator extends BaseGenerator
             'foreignKeyVariables' => $this->generateForeignKeyVariables($foreignKeys),
             'createViewParams' => $this->generateCreateViewParams($foreignKeys),
             'editViewParams' => $this->generateEditViewParams($modelVariableSingular, $foreignKeys),
+            'fillableFields' => $this->generateFillableFields($fields),
         ];
         
         $stubName = $isApi ? 'api-controller' : 'controller';
@@ -280,5 +281,33 @@ class ControllerGenerator extends BaseGenerator
         }
         
         return 'compact(' . implode(', ', $variables) . ')';
+    }
+    
+    /**
+     * Generate fillable fields for model.
+     *
+     * @param array $fields
+     * @return string
+     */
+    protected function generateFillableFields($fields)
+    {
+        if (empty($fields)) {
+            return "[]";
+        }
+        
+        $fillable = [];
+        
+        foreach ($fields as $field) {
+            $name = $field['name'];
+            
+            // Skip primary keys, timestamps, etc.
+            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'])) {
+                continue;
+            }
+            
+            $fillable[] = "'{$name}'";
+        }
+        
+        return "[" . implode(", ", $fillable) . "]";
     }
 } 
