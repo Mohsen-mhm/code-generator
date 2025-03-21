@@ -6,6 +6,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Console\Command;
 use MohsenMhm\CodeGenerator\Traits\GeneratesFiles;
 use MohsenMhm\CodeGenerator\Traits\ParsesSchemas;
+use Illuminate\Support\Str;
 
 abstract class BaseGenerator
 {
@@ -52,8 +53,11 @@ abstract class BaseGenerator
     /**
      * Create a new generator instance.
      */
-    public function __construct()
+    public function __construct($name, $schema = '', $options = [])
     {
+        $this->name = $name;
+        $this->schema = $schema;
+        $this->options = $options;
         $this->filesystem = new Filesystem();
     }
     
@@ -110,7 +114,7 @@ abstract class BaseGenerator
     }
     
     /**
-     * Get the namespace for a type.
+     * Get the namespace for a given type.
      *
      * @param string $type
      * @return string
@@ -118,19 +122,20 @@ abstract class BaseGenerator
     protected function getNamespace($type)
     {
         $namespaces = [
-            'model' => config('code-generator.namespaces.model', 'App\\Models'),
-            'controller' => config('code-generator.namespaces.controller', 'App\\Http\\Controllers'),
-            'resource' => config('code-generator.namespaces.resource', 'App\\Http\\Resources'),
-            'factory' => config('code-generator.namespaces.factory', 'Database\\Factories'),
-            'test' => config('code-generator.namespaces.test', 'Tests'),
-            'livewire' => config('code-generator.namespaces.livewire', 'App\\Livewire'),
+            'controller' => 'App\\Http\\Controllers',
+            'model' => 'App\\Models',
+            'resource' => 'App\\Http\\Resources',
+            'request' => 'App\\Http\\Requests',
+            'factory' => 'Database\\Factories',
+            'seeder' => 'Database\\Seeders',
+            'policy' => 'App\\Policies',
         ];
         
         return $namespaces[$type] ?? 'App';
     }
     
     /**
-     * Get the path for a type.
+     * Get the path for a given type.
      *
      * @param string $type
      * @return string
@@ -138,17 +143,123 @@ abstract class BaseGenerator
     protected function getPath($type)
     {
         $paths = [
-            'models' => config('code-generator.paths.models', app_path('Models')),
-            'controllers' => config('code-generator.paths.controllers', app_path('Http/Controllers')),
-            'resources' => config('code-generator.paths.resources', app_path('Http/Resources')),
-            'migrations' => config('code-generator.paths.migrations', database_path('migrations')),
-            'factories' => config('code-generator.paths.factories', database_path('factories')),
-            'tests' => config('code-generator.paths.tests', base_path('tests')),
-            'livewire' => config('code-generator.paths.livewire', app_path('Livewire')),
-            'views' => config('code-generator.paths.views', resource_path('views')),
+            'controllers' => app_path('Http/Controllers'),
+            'models' => app_path('Models'),
+            'resources' => app_path('Http/Resources'),
+            'requests' => app_path('Http/Requests'),
+            'factories' => database_path('factories'),
+            'seeders' => database_path('seeders'),
+            'policies' => app_path('Policies'),
+            'views' => resource_path('views'),
+            'migrations' => database_path('migrations'),
         ];
         
         return $paths[$type] ?? app_path();
+    }
+    
+    /**
+     * Get the contents of a stub file.
+     *
+     * @param string $stub
+     * @param array $replacements
+     * @return string
+     */
+    protected function getStubContents($stub, $replacements = [])
+    {
+        $contents = file_get_contents(__DIR__ . '/../Stubs/' . $stub . '.stub');
+        
+        foreach ($replacements as $search => $replace) {
+            $contents = str_replace('{{ ' . $search . ' }}', $replace, $contents);
+        }
+        
+        return $contents;
+    }
+    
+    /**
+     * Write contents to a file.
+     *
+     * @param string $path
+     * @param string $contents
+     * @return bool
+     */
+    protected function writeFile($path, $contents)
+    {
+        if (!$this->filesystem->isDirectory(dirname($path))) {
+            $this->filesystem->makeDirectory(dirname($path), 0755, true);
+        }
+        
+        if ($this->filesystem->exists($path) && !($this->options['force'] ?? false)) {
+            $this->error("File [{$path}] already exists!");
+            return false;
+        }
+        
+        $this->filesystem->put($path, $contents);
+        
+        return true;
+    }
+    
+    /**
+     * Parse schema string into an array of fields.
+     *
+     * @param string $schema
+     * @return array
+     */
+    protected function parseSchema($schema)
+    {
+        if (empty($schema)) {
+            return [];
+        }
+        
+        $fields = [];
+        
+        $parts = explode(',', $schema);
+        
+        foreach ($parts as $part) {
+            $part = trim($part);
+            
+            if (empty($part)) {
+                continue;
+            }
+            
+            $fieldParts = explode(':', $part);
+            
+            $name = trim($fieldParts[0]);
+            $type = trim($fieldParts[1] ?? 'string');
+            
+            $fields[] = [
+                'name' => $name,
+                'type' => $type,
+            ];
+        }
+        
+        return $fields;
+    }
+    
+    /**
+     * Get foreign keys from fields.
+     *
+     * @param array $fields
+     * @return array
+     */
+    protected function getForeignKeys($fields)
+    {
+        $foreignKeys = [];
+        
+        foreach ($fields as $field) {
+            $name = $field['name'];
+            $type = $field['type'];
+            
+            if ($type === 'foreignId' || Str::endsWith($name, '_id')) {
+                $relatedModel = Str::studly(str_replace('_id', '', $name));
+                
+                $foreignKeys[] = [
+                    'name' => $name,
+                    'model' => $relatedModel,
+                ];
+            }
+        }
+        
+        return $foreignKeys;
     }
     
     /**
@@ -159,8 +270,10 @@ abstract class BaseGenerator
      */
     protected function info($message)
     {
-        if ($this->command) {
-            $this->command->info($message);
+        if (function_exists('info')) {
+            info($message);
+        } else {
+            echo $message . PHP_EOL;
         }
     }
     
@@ -172,8 +285,10 @@ abstract class BaseGenerator
      */
     protected function error($message)
     {
-        if ($this->command) {
-            $this->command->error($message);
+        if (function_exists('error')) {
+            error($message);
+        } else {
+            echo $message . PHP_EOL;
         }
     }
     

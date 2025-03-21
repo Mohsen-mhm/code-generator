@@ -32,15 +32,10 @@ class PostTest extends TestCase
         // Submit the form
         $response = $this->post(route('posts.store'), $postData);
         
-        // Debug response
-        if ($response->status() !== 302) {
-            dump($response->content());
-        }
-        
-        // Check redirect
+        // Check if the response is a redirect to the index page
         $response->assertRedirect(route('posts.index'));
         
-        // Check database
+        // Check if the post was created in the database
         $this->assertDatabaseHas('posts', [
             'title' => 'Test Post Title',
             'content' => 'Test post content',
@@ -48,11 +43,14 @@ class PostTest extends TestCase
         ]);
     }
 
-    public function test_can_show_record()
+    public function test_can_view_record()
     {
-        $post = Post::factory()->create();
+        $user = User::factory()->create();
+        $post = Post::factory()->create(['user_id' => $user->id]);
+        
         $response = $this->get(route('posts.show', $post));
         $response->assertStatus(200);
+        $response->assertSee($post->title);
     }
 
     public function test_can_edit_record()
@@ -64,8 +62,8 @@ class PostTest extends TestCase
 
     public function test_can_update_record()
     {
-        $post = Post::factory()->create();
         $user = User::factory()->create();
+        $post = Post::factory()->create(['user_id' => $user->id]);
         
         $updatedData = [
             'title' => 'Updated Title',
@@ -87,7 +85,9 @@ class PostTest extends TestCase
 
     public function test_can_delete_record()
     {
-        $post = Post::factory()->create();
+        $user = User::factory()->create();
+        $post = Post::factory()->create(['user_id' => $user->id]);
+        
         $response = $this->delete(route('posts.destroy', $post));
         $response->assertRedirect(route('posts.index'));
         $this->assertDatabaseMissing('posts', ['id' => $post->id]);

@@ -4,7 +4,7 @@ namespace {{ namespace }};
 
 use {{ modelNamespace }}\{{ modelName }};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Carbon;
 {{ foreignKeyImports }}
 
 class {{ class }} extends Controller
@@ -36,6 +36,15 @@ class {{ class }} extends Controller
     {
         $validated = $request->validate({{ validationRules }});
         
+        // Handle date fields
+        foreach ($validated as $key => $value) {
+            if (strpos($key, 'date') !== false || strpos($key, 'time') !== false) {
+                if (!empty($value)) {
+                    $validated[$key] = Carbon::parse($value);
+                }
+            }
+        }
+        
         {{ modelName }}::create($validated);
         
         return redirect()->route('{{ viewName }}.index')->with('success', '{{ modelName }} created successfully.');
@@ -65,6 +74,15 @@ class {{ class }} extends Controller
     public function update(Request $request, {{ modelName }} ${{ modelVariableSingular }})
     {
         $validated = $request->validate({{ validationRules }});
+        
+        // Handle date fields
+        foreach ($validated as $key => $value) {
+            if (strpos($key, 'date') !== false || strpos($key, 'time') !== false) {
+                if (!empty($value)) {
+                    $validated[$key] = Carbon::parse($value);
+                }
+            }
+        }
         
         ${{ modelVariableSingular }}->update($validated);
         
