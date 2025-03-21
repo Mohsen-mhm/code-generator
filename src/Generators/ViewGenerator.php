@@ -186,20 +186,21 @@ class ViewGenerator extends BaseGenerator
             }
             
             $label = Str::title(str_replace('_', ' ', $name));
-            $value = $isEdit ? '{{ $' . Str::camel(str_replace('Controller', '', $this->name)) . '->' . $name . ' }}' : 'old(\'' . $name . '\')';
+            $value = $isEdit ? "{{ \$" . Str::camel($this->name) . "->{$name} }}" : "{{ old('{$name}') }}";
             
-            if ($type === 'text' || $type === 'mediumText' || $type === 'longText') {
+            if ($type === 'text' || $type === 'longText' || $type === 'mediumText') {
                 $formFields[] = $this->generateTextareaField($name, $label, $value);
             } elseif ($type === 'boolean') {
-                $formFields[] = $this->generateInputField($name, $label, 'checkbox', $isEdit ? '{{ $' . Str::camel(str_replace('Controller', '', $this->name)) . '->' . $name . ' ? \'checked\' : \'\' }}' : 'checked');
-            } elseif (Str::endsWith($name, '_id') || $type === 'foreignId') {
+                $checked = $isEdit ? "{{ \$" . Str::camel($this->name) . "->{$name} ? 'checked' : '' }}" : "{{ old('{$name}') ? 'checked' : '' }}";
+                $formFields[] = $this->generateInputField($name, $label, 'checkbox', $checked);
+            } elseif (Str::endsWith($name, '_id')) {
                 $formFields[] = $this->generateSelectField($name, $label, $value);
-            } elseif (Str::contains($name, 'password')) {
+            } elseif ($name === 'password') {
                 $formFields[] = $this->generateInputField($name, $label, 'password', '');
             } elseif (Str::contains($name, 'email')) {
                 $formFields[] = $this->generateInputField($name, $label, 'email', $value);
             } elseif ($type === 'date' || $type === 'dateTime' || $type === 'timestamp') {
-                $formFields[] = $this->generateInputField($name, $label, 'date', $value);
+                $formFields[] = $this->generateInputField($name, $label, 'datetime-local', $value);
             } elseif ($type === 'time') {
                 $formFields[] = $this->generateInputField($name, $label, 'time', $value);
             } else {
