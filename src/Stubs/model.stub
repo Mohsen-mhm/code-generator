@@ -8,8 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class {{ class }} extends Model
 {
-    use HasFactory;
-    {{ softDeletes }}
+    use HasFactory{{ softDeletes }};
     
     /**
      * The table associated with the model.
@@ -23,7 +22,9 @@ class {{ class }} extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = {{ fillable }};
+    protected $fillable = [
+        {{ fillable }}
+    ];
 
     /**
      * The attributes that should be cast.

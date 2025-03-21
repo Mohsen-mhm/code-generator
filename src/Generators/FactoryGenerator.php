@@ -17,9 +17,15 @@ class FactoryGenerator extends BaseGenerator
             $modelName = str_replace('Factory', '', $modelName);
         }
         
-        $factoryNamespace = $this->getNamespace('factory');
+        // Check if factory already exists
         $factoryPath = $this->getPath('factories') . '/' . $factoryName . '.php';
+        if ($this->filesystem->exists($factoryPath) && !($this->options['force'] ?? false)) {
+            $this->info("Factory [{$factoryName}] already exists. Use --force to overwrite.");
+            return false;
+        }
         
+        // Use Database\Factories namespace as per Laravel convention
+        $factoryNamespace = 'Database\\Factories';
         $modelNamespace = $this->getNamespace('model') . '\\' . $modelName;
         
         // Parse schema to generate factory attributes
