@@ -6,47 +6,116 @@ use Illuminate\Support\Str;
 
 trait GeneratesFiles
 {
-    protected function makeDirectory($path)
+    /**
+     * Write contents to a file.
+     *
+     * @param string $path
+     * @param string $contents
+     * @return bool
+     */
+    protected function writeFile($path, $contents)
     {
-        if (!$this->filesystem->isDirectory(dirname($path))) {
-            $this->filesystem->makeDirectory(dirname($path), 0755, true);
+        if ($this->filesystem->exists($path) && !($this->options['force'] ?? false)) {
+            $this->error("File [{$path}] already exists. Use --force to overwrite.");
+            return false;
         }
+        
+        $directory = dirname($path);
+        
+        if (!$this->filesystem->isDirectory($directory)) {
+            $this->filesystem->makeDirectory($directory, 0755, true);
+        }
+        
+        $this->filesystem->put($path, $contents);
+        
+        return true;
     }
-
-    protected function getStubContents($stub, $replacements = [])
+    
+    /**
+     * Get stub contents and replace placeholders.
+     *
+     * @param string $stub
+     * @param array $replacements
+     * @return string
+     */
+    protected function getStubContents($stub, $replacements)
     {
-        $contents = file_get_contents($this->getStubPath($stub));
-
+        $contents = $this->filesystem->get($this->getStubPath($stub));
+        
         foreach ($replacements as $search => $replace) {
             $contents = str_replace('{{ ' . $search . ' }}', $replace, $contents);
         }
-
+        
         return $contents;
     }
-
-    protected function writeFile($path, $contents)
+    
+    /**
+     * Get the path to a stub file.
+     *
+     * @param string $stub
+     * @return string
+     */
+    protected function getStubPath($stub)
     {
-        $this->makeDirectory($path);
-
-        if ($this->filesystem->exists($path) && !$this->options['force']) {
-            if ($this->command) {
-                if (!$this->command->confirm("The file {$path} already exists. Do you want to overwrite it?")) {
-                    if ($this->command) {
-                        $this->command->info("File generation skipped.");
+        $customPath = config('code-generator.stubs_path') . "/{$stub}.stub";
+        
+        if ($this->filesystem->exists($customPath)) {
+            return $customPath;
+        }
+        
+        return __DIR__ . "/../Stubs/{$stub}.stub";
+    }
+    
+    /**
+     * Get fields as a string for different contexts.
+     *
+     * @param array $fields
+     * @param string $context
+     * @return string
+     */
+    protected function getFieldsAsString($fields, $context)
+    {
+        if (empty($fields)) {
+            return '';
+        }
+        
+        $result = '';
+        
+        switch ($context) {
+            case 'migration':
+                foreach ($fields as $field) {
+                    $name = $field['name'];
+                    $type = $field['type'];
+                    $modifiers = $field['modifiers'] ?? [];
+                    
+                    $result .= "\$table->{$type}('{$name}')";
+                    
+                    foreach ($modifiers as $modifier) {
+                        $result .= "->{$modifier}()";
                     }
-                    return false;
+                    
+                    $result .= ";\n            ";
                 }
-            } else {
-                return false;
-            }
+                break;
+                
+            case 'fillable':
+                $fieldNames = array_map(function ($field) {
+                    return "'" . $field['name'] . "'";
+                }, $fields);
+                
+                $result = implode(",\n        ", $fieldNames);
+                break;
+                
+            case 'casts':
+                foreach ($fields as $field) {
+                    $name = $field['name'];
+                    $type = $field['type'];
+                    
+                    $result .= "'{$name}' => '{$type}',\n        ";
+                }
+                break;
         }
-
-        $this->filesystem->put($path, $contents);
         
-        if ($this->command) {
-            $this->command->info("Created: {$path}");
-        }
-        
-        return true;
+        return $result;
     }
 } 
