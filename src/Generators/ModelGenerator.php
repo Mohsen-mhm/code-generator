@@ -222,5 +222,4 @@ PHP;
         
         return implode("\n    ", $traits);
     }
-} 
-} 
+}
