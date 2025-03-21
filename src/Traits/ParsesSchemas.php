@@ -6,35 +6,78 @@ use Illuminate\Support\Str;
 
 trait ParsesSchemas
 {
+    /**
+     * Parse schema string into an array of fields.
+     *
+     * @param string|null $schema
+     * @return array
+     */
     protected function parseSchema($schema)
     {
         if (empty($schema)) {
             return [];
         }
-
+        
         $fields = [];
+        
         $parts = explode(',', $schema);
-
+        
         foreach ($parts as $part) {
-            $fieldDefinition = trim($part);
-            if (empty($fieldDefinition)) {
-                continue;
+            $segments = explode(':', $part);
+            
+            $name = trim($segments[0]);
+            $type = trim($segments[1] ?? 'string');
+            
+            $modifiers = [];
+            
+            for ($i = 2; $i < count($segments); $i++) {
+                $modifiers[] = trim($segments[$i]);
             }
-
-            // Format: name:type:modifier1:modifier2...
-            $segments = explode(':', $fieldDefinition);
-            $name = array_shift($segments);
-            $type = count($segments) ? array_shift($segments) : 'string';
-            $modifiers = $segments;
-
+            
             $fields[] = [
                 'name' => $name,
                 'type' => $type,
                 'modifiers' => $modifiers,
             ];
         }
-
+        
         return $fields;
+    }
+    
+    /**
+     * Format schema fields as a string for migration.
+     *
+     * @param array $fields
+     * @param string $context
+     * @return string
+     */
+    protected function formatSchemaFieldsAsString($fields, $context)
+    {
+        if (empty($fields)) {
+            return '';
+        }
+        
+        $result = '';
+        
+        switch ($context) {
+            case 'migration':
+                foreach ($fields as $field) {
+                    $name = $field['name'];
+                    $type = $field['type'];
+                    $modifiers = $field['modifiers'] ?? [];
+                    
+                    $result .= "\$table->{$type}('{$name}')";
+                    
+                    foreach ($modifiers as $modifier) {
+                        $result .= "->{$modifier}()";
+                    }
+                    
+                    $result .= ";\n            ";
+                }
+                break;
+        }
+        
+        return $result;
     }
 
     protected function getFieldsAsString($fields, $format = 'migration')

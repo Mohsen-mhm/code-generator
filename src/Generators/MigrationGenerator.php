@@ -35,7 +35,7 @@ class MigrationGenerator extends BaseGenerator
         $replacements = [
             'class' => Str::studly($migrationName),
             'table' => $tableName,
-            'fields' => $this->getFieldsAsString($fields, 'migration'),
+            'fields' => $this->formatSchemaFieldsAsString($fields, 'migration'),
             'timestamps' => config('code-generator.models.timestamps') ? '$table->timestamps();' : '// No timestamps',
             'softDeletes' => config('code-generator.models.soft_deletes') ? '$table->softDeletes();' : '// No soft deletes',
         ];
