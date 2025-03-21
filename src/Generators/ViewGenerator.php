@@ -320,21 +320,21 @@ class ViewGenerator extends BaseGenerator
     {
         $relatedModel = Str::studly(str_replace('_id', '', $name));
         
-        return <<<HTML
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="{$name}">
-                {$label}
-            </label>
-            <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="{$name}" name="{$name}">
-                <option value="">Select {$relatedModel}</option>
-                @foreach(\${$name}Options ?? [] as \$id => \$name)
-                    <option value="{{ \$id }}" @if({$value} == \$id) selected @endif>{{ \$name }}</option>
-                @endforeach
-            </select>
-            @error('{$name}')
-                <p class="text-red-500 text-xs italic">{{ \$message }}</p>
-            @enderror
-        </div>
-        HTML;
+        $html = '<div class="mb-4">' . PHP_EOL;
+        $html .= '            <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">' . PHP_EOL;
+        $html .= '                ' . $label . PHP_EOL;
+        $html .= '            </label>' . PHP_EOL;
+        $html .= '            <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" name="' . $name . '">' . PHP_EOL;
+        $html .= '                <option value="">Select ' . $relatedModel . '</option>' . PHP_EOL;
+        $html .= '                @foreach($' . $name . 'Options ?? [] as $id => $optionName)' . PHP_EOL;
+        $html .= '                    <option value="{{ $id }}" {{ ' . $value . ' == $id ? \'selected\' : \'\' }}>{{ $optionName }}</option>' . PHP_EOL;
+        $html .= '                @endforeach' . PHP_EOL;
+        $html .= '            </select>' . PHP_EOL;
+        $html .= '            @error(\'' . $name . '\')' . PHP_EOL;
+        $html .= '                <p class="text-red-500 text-xs italic">{{ $message }}</p>' . PHP_EOL;
+        $html .= '            @enderror' . PHP_EOL;
+        $html .= '        </div>';
+        
+        return $html;
     }
 } 
