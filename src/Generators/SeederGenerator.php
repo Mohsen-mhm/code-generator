@@ -50,7 +50,7 @@ class SeederGenerator extends BaseGenerator
         $databaseSeederPath = $this->getPath('seeders') . '/DatabaseSeeder.php';
         
         if (!file_exists($databaseSeederPath)) {
-            $this->warn("DatabaseSeeder.php not found. Could not update it.");
+            $this->error("DatabaseSeeder.php not found. Could not update it.");
             return false;
         }
         
