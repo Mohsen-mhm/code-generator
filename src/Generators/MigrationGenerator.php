@@ -48,28 +48,27 @@ class MigrationGenerator extends BaseGenerator
         if (empty($fields)) {
             return '$table->id();';
         }
-        
+
         $migrationFields = ['$table->id();'];
-        
+
         foreach ($fields as $field) {
             $name = $field['name'];
-            $type = $field['type'];
-            
+
             // Skip primary keys, timestamps, etc.
             if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'])) {
                 continue;
             }
-            
-            $migrationField = $this->getMigrationField($name, $type);
-            
+
+            $migrationField = $this->getMigrationField($field);
+
             if ($migrationField) {
                 $migrationFields[] = $migrationField;
             }
         }
-        
+
         // Add timestamps
         $migrationFields[] = '$table->timestamps();';
-        
+
         // Check if we need soft deletes
         foreach ($fields as $field) {
             if ($field['name'] === 'deleted_at') {
@@ -77,10 +76,10 @@ class MigrationGenerator extends BaseGenerator
                 break;
             }
         }
-        
+
         return implode("\n            ", $migrationFields);
     }
-    
+
     /**
      * Get migration field for a given field.
      *
@@ -88,11 +87,16 @@ class MigrationGenerator extends BaseGenerator
      * @param string $type
      * @return string|null
      */
-    protected function getMigrationField($name, $type)
+    protected function getMigrationField($field)
     {
+        // Extract data from the $field array
+        $name = $field['name'];
+        $type = $field['type'];
+
+        // Check if the field is nullable
         $nullable = Str::contains($type, 'nullable') ? '->nullable()' : '';
         $type = Str::before($type, ':');
-        
+
         switch ($type) {
             case 'string':
                 return "\$table->string('{$name}'){$nullable};";

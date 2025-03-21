@@ -58,14 +58,12 @@ class ControllerGenerator extends BaseGenerator
             
             // Generate routes if needed
             if ($this->options['routes'] ?? config('code-generator.routes.enabled', true)) {
-                app(RoutesGenerator::class)
-                    ->setCommand($this->command)
-                    ->setName($modelName)
-                    ->setOptions([
-                        'controller' => $controllerName,
-                        'api' => $isApi,
-                    ])
-                    ->generate();
+                $generator = new RoutesGenerator(name: $modelName, options:[
+                    'controller' => $controllerName,
+                    'api' => $isApi,
+                ]);
+                $generator->setCommand($this->command);
+                $generator->generate();
             }
             
             return true;
