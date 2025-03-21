@@ -85,6 +85,12 @@ class FactoryGenerator extends BaseGenerator
      */
     protected function getFakerStatement($name, $type)
     {
+        // Handle foreign keys
+        if ($type === 'foreignId' || $type === 'foreignIdFor' || 
+            Str::endsWith($name, '_id') || Str::contains($name, ['foreign', 'reference'])) {
+            return '$this->faker->numberBetween(1, 10)';
+        }
+        
         // Detect field type by name
         if (Str::contains($name, ['email'])) {
             return '$this->faker->unique()->safeEmail()';
@@ -130,6 +136,8 @@ class FactoryGenerator extends BaseGenerator
             case 'bigInteger':
             case 'smallInteger':
             case 'tinyInteger':
+            case 'unsignedInteger':
+            case 'unsignedBigInteger':
                 return '$this->faker->numberBetween(1, 100)';
             case 'float':
             case 'double':
