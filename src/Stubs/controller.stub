@@ -2,9 +2,10 @@
 
 namespace {{ namespace }};
 
-use {{ modelNamespace }};
+use {{ modelNamespace }}\{{ modelName }};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+{{ foreignKeyImports }}
 
 class {{ class }} extends Controller
 {
@@ -13,9 +14,9 @@ class {{ class }} extends Controller
      */
     public function index()
     {
-        ${{ modelVariablePlural }} = {{ model }}::latest()->paginate(10);
+        ${{ modelVariablePlural }} = {{ modelName }}::latest()->paginate(10);
         
-        return view('{{ viewPath }}.index', compact('{{ modelVariablePlural }}'));
+        return view('{{ viewName }}.index', compact('{{ modelVariablePlural }}'));
     }
 
     /**
@@ -23,7 +24,9 @@ class {{ class }} extends Controller
      */
     public function create()
     {
-        return view('{{ viewPath }}.create');
+        {{ foreignKeyVariables }}
+        
+        return view('{{ viewName }}.create', compact('{{ modelVariableSingular }}'{{ foreignKeyVariables ? ', \'' . implode('\', \'', array_map(function($fk) { return $fk['name'] . 'Options'; }, $foreignKeys ?? [])) . '\'' : '' }}));
     }
 
     /**
@@ -41,32 +44,34 @@ class {{ class }} extends Controller
                 ->withInput();
         }
         
-        {{ model }}::create($request->all());
+        {{ modelName }}::create($request->all());
         
-        return redirect()->route('{{ viewPath }}.index')
-            ->with('success', '{{ model }} created successfully.');
+        return redirect()->route('{{ viewName }}.index')
+            ->with('success', '{{ modelName }} created successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show({{ model }} ${{ modelVariable }})
+    public function show({{ modelName }} ${{ modelVariableSingular }})
     {
-        return view('{{ viewPath }}.show', compact('{{ modelVariable }}'));
+        return view('{{ viewName }}.show', compact('{{ modelVariableSingular }}'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit({{ model }} ${{ modelVariable }})
+    public function edit({{ modelName }} ${{ modelVariableSingular }})
     {
-        return view('{{ viewPath }}.edit', compact('{{ modelVariable }}'));
+        {{ foreignKeyVariables }}
+        
+        return view('{{ viewName }}.edit', compact('{{ modelVariableSingular }}'{{ foreignKeyVariables ? ', \'' . implode('\', \'', array_map(function($fk) { return $fk['name'] . 'Options'; }, $foreignKeys ?? [])) . '\'' : '' }}));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, {{ model }} ${{ modelVariable }})
+    public function update(Request $request, {{ modelName }} ${{ modelVariableSingular }})
     {
         $validator = Validator::make($request->all(), [
             // Add validation rules based on your schema
@@ -78,20 +83,20 @@ class {{ class }} extends Controller
                 ->withInput();
         }
         
-        ${{ modelVariable }}->update($request->all());
+        ${{ modelVariableSingular }}->update($request->all());
         
-        return redirect()->route('{{ viewPath }}.index')
-            ->with('success', '{{ model }} updated successfully.');
+        return redirect()->route('{{ viewName }}.index')
+            ->with('success', '{{ modelName }} updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy({{ model }} ${{ modelVariable }})
+    public function destroy({{ modelName }} ${{ modelVariableSingular }})
     {
-        ${{ modelVariable }}->delete();
+        ${{ modelVariableSingular }}->delete();
         
-        return redirect()->route('{{ viewPath }}.index')
-            ->with('success', '{{ model }} deleted successfully.');
+        return redirect()->route('{{ viewName }}.index')
+            ->with('success', '{{ modelName }} deleted successfully.');
     }
 } 

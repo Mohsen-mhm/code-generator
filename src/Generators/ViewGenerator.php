@@ -13,6 +13,20 @@ class ViewGenerator extends BaseGenerator
         $modelVariable = Str::camel($modelName);
         $modelVariablePlural = Str::camel(Str::pluralStudly($modelName));
         
+        // Ensure layouts directory exists
+        $layoutsPath = resource_path('views/layouts');
+        if (!$this->filesystem->isDirectory($layoutsPath)) {
+            $this->filesystem->makeDirectory($layoutsPath, 0755, true);
+        }
+        
+        // Create app layout if it doesn't exist
+        $appLayoutPath = $layoutsPath . '/app.blade.php';
+        if (!$this->filesystem->exists($appLayoutPath)) {
+            $layoutContents = $this->getStubContents('view-layout', []);
+            $this->writeFile($appLayoutPath, $layoutContents);
+            $this->info("Layout file [app.blade.php] created successfully.");
+        }
+        
         $viewPath = $this->getPath('views') . '/' . $viewName;
         
         // Create directory if it doesn't exist
@@ -115,10 +129,9 @@ class ViewGenerator extends BaseGenerator
             }
             
             $label = Str::title(str_replace('_', ' ', $name));
-            $value = $isEdit ? '{{ $' . Str::camel($this->name) . '->' . $name . ' }}' : '';
+            $inputType = $this->getInputType($name, $type);
             
-            // Determine input type
-            $inputType = $this->getInputType($type, $name);
+            $value = $isEdit ? "{{ \$" . Str::camel($this->name) . "->{$name} }}" : "{{ old('{$name}') }}";
             
             if ($inputType === 'textarea') {
                 $formFields .= $this->generateTextareaField($name, $label, $value);
@@ -145,22 +158,22 @@ class ViewGenerator extends BaseGenerator
         }
         
         $showFields = '';
+        $modelVariable = Str::camel($this->name);
         
         foreach ($fields as $field) {
             $name = $field['name'];
             
-            // Skip primary keys, timestamps, etc.
+            // Skip soft delete fields
             if (in_array($name, ['deleted_at'])) {
                 continue;
             }
             
             $label = Str::title(str_replace('_', ' ', $name));
-            $value = '{{ $' . Str::camel($this->name) . '->' . $name . ' }}';
             
             $showFields .= <<<HTML
             <div class="mb-4">
-                <h5 class="font-bold">{$label}</h5>
-                <p>{$value}</p>
+                <h2 class="text-lg font-semibold">{$label}</h2>
+                <p class="mt-1">{{ \${$modelVariable}->{$name} }}</p>
             </div>
 
             HTML;
@@ -170,32 +183,32 @@ class ViewGenerator extends BaseGenerator
     }
     
     /**
-     * Get input type based on field type.
+     * Get the input type for a field.
      *
-     * @param string $type
      * @param string $name
+     * @param string $type
      * @return string
      */
-    protected function getInputType($type, $name)
+    protected function getInputType($name, $type)
     {
-        if (Str::contains($name, ['password'])) {
-            return 'password';
-        }
-        
         if (Str::contains($name, ['email'])) {
             return 'email';
         }
         
-        if (Str::contains($name, ['_at', 'date'])) {
-            return 'date';
+        if (Str::contains($name, ['password'])) {
+            return 'password';
         }
         
-        if ($type === 'text' || $type === 'mediumText' || $type === 'longText') {
-            return 'textarea';
+        if (Str::contains($name, ['date', 'time'])) {
+            return 'datetime-local';
         }
         
         if ($type === 'boolean') {
             return 'checkbox';
+        }
+        
+        if (in_array($type, ['text', 'mediumText', 'longText'])) {
+            return 'textarea';
         }
         
         if ($type === 'foreignId' || Str::endsWith($name, '_id')) {
@@ -290,7 +303,7 @@ class ViewGenerator extends BaseGenerator
             </label>
             <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="{$name}" name="{$name}">
                 <option value="">Select {$relatedModel}</option>
-                @foreach(\${$name}Options as \$id => \$name)
+                @foreach(\${$name}Options ?? [] as \$id => \$name)
                     <option value="{{ \$id }}" {{ {$value} == \$id ? 'selected' : '' }}>{{ \$name }}</option>
                 @endforeach
             </select>
