@@ -8,36 +8,20 @@ class FactoryGenerator extends BaseGenerator
 {
     public function generate()
     {
-        $modelName = $this->options['model'] ?? $this->name;
+        $modelName = $this->name;
+        $factoryName = $modelName . 'Factory';
+        $modelNamespace = $this->getNamespace('model');
         
-        if (!Str::endsWith($modelName, 'Factory')) {
-            $factoryName = $modelName . 'Factory';
-        } else {
-            $factoryName = $modelName;
-            $modelName = str_replace('Factory', '', $modelName);
-        }
-        
-        // Check if factory already exists
         $factoryPath = $this->getPath('factories') . '/' . $factoryName . '.php';
-        if ($this->filesystem->exists($factoryPath) && !($this->options['force'] ?? false)) {
-            $this->info("Factory [{$factoryName}] already exists. Use --force to overwrite.");
-            return false;
-        }
         
-        // Use Database\Factories namespace as per Laravel convention
-        $factoryNamespace = 'Database\\Factories';
-        $modelNamespace = $this->getNamespace('model') . '\\' . $modelName;
-        
-        // Parse schema to generate factory attributes
+        // Parse schema to find fields
         $fields = $this->parseSchema($this->schema);
-        $factoryAttributes = $this->generateFactoryAttributes($fields);
         
         $replacements = [
-            'namespace' => $factoryNamespace,
-            'class' => $factoryName,
-            'model' => $modelName,
+            'namespace' => $this->getNamespace('factory'),
             'modelNamespace' => $modelNamespace,
-            'attributes' => $factoryAttributes,
+            'modelName' => $modelName,
+            'fields' => $this->generateFields($fields),
         ];
         
         $contents = $this->getStubContents('factory', $replacements);
@@ -51,14 +35,18 @@ class FactoryGenerator extends BaseGenerator
     }
     
     /**
-     * Generate factory attributes based on schema fields.
+     * Generate factory fields.
      *
      * @param array $fields
      * @return string
      */
-    protected function generateFactoryAttributes($fields)
+    protected function generateFields($fields)
     {
-        $attributes = [];
+        if (empty($fields)) {
+            return '';
+        }
+        
+        $factoryFields = [];
         
         foreach ($fields as $field) {
             $name = $field['name'];
@@ -69,94 +57,97 @@ class FactoryGenerator extends BaseGenerator
                 continue;
             }
             
-            $faker = $this->getFakerStatement($name, $type);
-            $attributes[] = "'{$name}' => {$faker},";
+            $factoryField = $this->getFactoryField($name, $type);
+            
+            if ($factoryField) {
+                $factoryFields[] = "'{$name}' => {$factoryField}";
+            }
         }
         
-        return implode(PHP_EOL . '            ', $attributes);
+        return implode(",\n            ", $factoryFields);
     }
     
     /**
-     * Get the appropriate Faker statement for a field.
+     * Get factory field for a given field.
      *
      * @param string $name
      * @param string $type
-     * @return string
+     * @return string|null
      */
-    protected function getFakerStatement($name, $type)
+    protected function getFactoryField($name, $type)
     {
-        // Handle foreign keys
-        if ($type === 'foreignId' || $type === 'foreignIdFor' || 
-            Str::endsWith($name, '_id') || Str::contains($name, ['foreign', 'reference'])) {
-            return '$this->faker->numberBetween(1, 10)';
+        $type = Str::before($type, ':');
+        
+        if (Str::endsWith($name, '_id')) {
+            $relatedModel = Str::studly(str_replace('_id', '', $name));
+            $modelNamespace = $this->getNamespace('model');
+            return "\\{$modelNamespace}\\{$relatedModel}::factory()";
         }
         
-        // Detect field type by name
-        if (Str::contains($name, ['email'])) {
-            return '$this->faker->unique()->safeEmail()';
+        if ($name === 'name' || $name === 'title') {
+            return '$this->faker->sentence';
         }
         
-        if (Str::contains($name, ['name', 'title'])) {
-            return '$this->faker->name()';
+        if ($name === 'email') {
+            return '$this->faker->unique()->safeEmail';
         }
         
-        if (Str::contains($name, ['password'])) {
-            return 'bcrypt(\'password\')';
+        if ($name === 'password') {
+            return "bcrypt('password')";
         }
         
-        if (Str::contains($name, ['description', 'content', 'body'])) {
-            return '$this->faker->paragraph()';
+        if ($name === 'content' || $name === 'description' || $name === 'body') {
+            return '$this->faker->paragraph';
         }
         
-        if (Str::contains($name, ['image', 'avatar', 'photo', 'picture'])) {
+        if (Str::contains($name, 'image') || Str::contains($name, 'photo') || Str::contains($name, 'avatar')) {
             return '$this->faker->imageUrl()';
         }
         
-        if (Str::contains($name, ['url', 'link', 'website'])) {
-            return '$this->faker->url()';
+        if (Str::contains($name, 'url') || Str::contains($name, 'link')) {
+            return '$this->faker->url';
         }
         
-        if (Str::contains($name, ['phone'])) {
-            return '$this->faker->phoneNumber()';
+        if (Str::contains($name, 'phone')) {
+            return '$this->faker->phoneNumber';
         }
         
-        if (Str::contains($name, ['address'])) {
-            return '$this->faker->address()';
+        if (Str::contains($name, 'address')) {
+            return '$this->faker->address';
         }
         
-        // Detect by type
         switch ($type) {
             case 'string':
-                return '$this->faker->word()';
+                return '$this->faker->word';
             case 'text':
-            case 'mediumText':
             case 'longText':
-                return '$this->faker->paragraph()';
+            case 'mediumText':
+                return '$this->faker->paragraph';
             case 'integer':
             case 'bigInteger':
             case 'smallInteger':
             case 'tinyInteger':
-            case 'unsignedInteger':
-            case 'unsignedBigInteger':
-                return '$this->faker->numberBetween(1, 100)';
+                return '$this->faker->randomNumber()';
+            case 'decimal':
             case 'float':
             case 'double':
-            case 'decimal':
-                return '$this->faker->randomFloat(2, 1, 100)';
+                return '$this->faker->randomFloat()';
             case 'boolean':
-                return '$this->faker->boolean()';
+                return '$this->faker->boolean';
             case 'date':
                 return '$this->faker->date()';
             case 'dateTime':
             case 'timestamp':
-                return '$this->faker->dateTime()->format(\'Y-m-d H:i:s\')';
+                return '$this->faker->dateTime()';
             case 'time':
                 return '$this->faker->time()';
             case 'json':
             case 'jsonb':
-                return '\'{"key": "value"}\'';
+                return '[]';
+            case 'uuid':
+                return '$this->faker->uuid';
             default:
-                return '$this->faker->word()';
+                return null;
         }
     }
 } 

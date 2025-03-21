@@ -26,6 +26,15 @@ class CodeGeneratorServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__.'/../config/code-generator.php', 'code-generator'
         );
+        
+        // Manually register the commands
+        $this->app->bind('command.code.generate', function ($app) {
+            return new GenerateCommand();
+        });
+        
+        $this->app->bind('command.code.regenerate-views', function ($app) {
+            return new RegenerateViewsCommand();
+        });
     }
 
     /**
@@ -35,18 +44,8 @@ class CodeGeneratorServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                GenerateCommand::class,
-                GenerateControllerCommand::class,
-                GenerateModelCommand::class,
-                GenerateLivewireCommand::class,
-                GenerateMigrationCommand::class,
-                GenerateResourceCommand::class,
-                GenerateRoutesCommand::class,
-                GenerateTestCommand::class,
-                GenerateFactoryCommand::class,
-                GenerateRollbackCommand::class,
-                GenerateViewsCommand::class,
-                RegenerateViewsCommand::class,
+                'command.code.generate',
+                'command.code.regenerate-views',
             ]);
             
             $this->publishes([
