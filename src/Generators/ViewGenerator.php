@@ -56,7 +56,7 @@ class ViewGenerator extends BaseGenerator
             'modelName' => $modelName,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'formFields' => $this->generateFormFields($fields),
+            'fields' => $this->generateFormFields($fields),
         ];
         $createContents = $this->getStubContents('view-create', $createReplacements);
         
@@ -67,7 +67,7 @@ class ViewGenerator extends BaseGenerator
             'modelVariable' => $modelVariable,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'formFields' => $this->generateFormFields($fields, true),
+            'fields' => $this->generateFormFields($fields, true),
         ];
         $editContents = $this->getStubContents('view-edit', $editReplacements);
         
@@ -78,7 +78,7 @@ class ViewGenerator extends BaseGenerator
             'modelVariable' => $modelVariable,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'detailFields' => $this->generateDetailFields($fields, $modelVariable),
+            'fields' => $this->generateDetailFields($fields, $modelVariable),
         ];
         $showContents = $this->getStubContents('view-show', $showReplacements);
         
