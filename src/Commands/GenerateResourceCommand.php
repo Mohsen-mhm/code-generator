@@ -1,9 +1,9 @@
 <?php
 
-namespace YourName\CodeGenerator\Commands;
+namespace MohsenMhm\CodeGenerator\Commands;
 
 use Illuminate\Console\Command;
-use YourName\CodeGenerator\Generators\ResourceGenerator;
+use MohsenMhm\CodeGenerator\Generators\ResourceGenerator;
 
 class GenerateResourceCommand extends Command
 {

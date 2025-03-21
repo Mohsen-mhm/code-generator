@@ -1,6 +1,6 @@
 <?php
 
-namespace YourName\CodeGenerator\Generators;
+namespace MohsenMhm\CodeGenerator\Generators;
 
 use Illuminate\Support\Str;
 

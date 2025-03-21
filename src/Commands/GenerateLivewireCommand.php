@@ -1,9 +1,9 @@
 <?php
 
-namespace YourName\CodeGenerator\Commands;
+namespace MohsenMhm\CodeGenerator\Commands;
 
 use Illuminate\Console\Command;
-use YourName\CodeGenerator\Generators\LivewireGenerator;
+use MohsenMhm\CodeGenerator\Generators\LivewireGenerator;
 
 class GenerateLivewireCommand extends Command
 {

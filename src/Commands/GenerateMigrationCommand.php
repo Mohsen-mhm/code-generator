@@ -1,9 +1,9 @@
 <?php
 
-namespace YourName\CodeGenerator\Commands;
+namespace MohsenMhm\CodeGenerator\Commands;
 
 use Illuminate\Console\Command;
-use YourName\CodeGenerator\Generators\MigrationGenerator;
+use MohsenMhm\CodeGenerator\Generators\MigrationGenerator;
 
 class GenerateMigrationCommand extends Command
 {
