@@ -12,31 +12,41 @@ class MigrationGenerator extends BaseGenerator
     {
         $tableName = Str::snake(Str::pluralStudly($this->name));
         $className = 'Create' . Str::studly($tableName) . 'Table';
-        
+
+        // Check if a migration for this table already exists
+        $existingMigration = $this->findExistingMigration($tableName);
+
+        if ($existingMigration && !($this->options['force'] ?? false)) {
+            $this->info("Migration for table [{$tableName}] already exists at [{$existingMigration}].");
+            $this->info("Use --force option to overwrite.");
+            return false;
+        }
+
         $timestamp = Carbon::now()->format('Y_m_d_His');
         $filename = $timestamp . '_create_' . $tableName . '_table.php';
-        
-        $migrationPath = $this->getPath('migrations') . '/' . $filename;
-        
+
+        // Use existing path if found (with --force), otherwise create a new path
+        $migrationPath = $existingMigration ?: $this->getPath('migrations') . '/' . $filename;
+
         // Parse schema to find fields
         $fields = $this->parseSchema($this->schema);
-        
+
         $replacements = [
             'class' => $className,
             'table' => $tableName,
             'fields' => $this->generateFields($fields),
         ];
-        
+
         $contents = $this->getStubContents('migration', $replacements);
-        
+
         if ($this->writeFile($migrationPath, $contents)) {
-            $this->info("Migration [{$filename}] created successfully.");
+            $this->info("Migration [{$migrationPath}] created successfully.");
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Generate migration fields.
      *
@@ -46,16 +56,23 @@ class MigrationGenerator extends BaseGenerator
     protected function generateFields($fields)
     {
         if (empty($fields)) {
-            return '$table->id();';
+            return '$table->id();' . PHP_EOL . '            $table->timestamps();';
         }
 
         $migrationFields = ['$table->id();'];
+        $hasDeletedAt = false;
 
         foreach ($fields as $field) {
             $name = $field['name'];
 
             // Skip primary keys, timestamps, etc.
-            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'])) {
+            if (in_array($name, ['id', 'created_at', 'updated_at'])) {
+                continue;
+            }
+
+            // Check for soft deletes
+            if ($name === 'deleted_at') {
+                $hasDeletedAt = true;
                 continue;
             }
 
@@ -69,15 +86,12 @@ class MigrationGenerator extends BaseGenerator
         // Add timestamps
         $migrationFields[] = '$table->timestamps();';
 
-        // Check if we need soft deletes
-        foreach ($fields as $field) {
-            if ($field['name'] === 'deleted_at') {
-                $migrationFields[] = '$table->softDeletes();';
-                break;
-            }
+        // Add soft deletes if needed
+        if ($hasDeletedAt) {
+            $migrationFields[] = '$table->softDeletes();';
         }
 
-        return implode("\n            ", $migrationFields);
+        return implode(PHP_EOL . '            ', $migrationFields);
     }
 
     /**
@@ -133,7 +147,7 @@ class MigrationGenerator extends BaseGenerator
                 return null;
         }
     }
-    
+
     /**
      * Find an existing migration for the given table.
      *
@@ -144,26 +158,26 @@ class MigrationGenerator extends BaseGenerator
     {
         $migrationsPath = $this->getPath('migrations');
         $files = File::glob($migrationsPath . '/*.php');
-        
+
         foreach ($files as $file) {
             $filename = basename($file);
-            
+
             // Check for create_table_name_table.php pattern
             if (Str::contains($filename, "create_{$tableName}_table")) {
                 return $file;
             }
-            
+
             // Also check the content of the file for the table name
             $content = File::get($file);
-            if (Str::contains($content, "Schema::create('{$tableName}'") || 
+            if (Str::contains($content, "Schema::create('{$tableName}'") ||
                 Str::contains($content, "Schema::create(\"{$tableName}\"")) {
                 return $file;
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * Check if a migration for the given table already exists.
      *
@@ -174,4 +188,4 @@ class MigrationGenerator extends BaseGenerator
     {
         return $this->findExistingMigration($tableName) !== null;
     }
-} 
+}
