@@ -91,4 +91,3 @@ class MigrationGenerator extends BaseGenerator
         return $this->findExistingMigration($tableName) !== null;
     }
 } 
-} 
