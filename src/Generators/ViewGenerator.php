@@ -258,31 +258,26 @@ class ViewGenerator extends BaseGenerator
      */
     protected function generateInputField($name, $label, $type, $value)
     {
+        $html = '<div class="mb-4">' . PHP_EOL;
+        
         if ($type === 'checkbox') {
-            return <<<HTML
-            <div class="mb-4">
-                <label class="inline-flex items-center">
-                    <input type="checkbox" name="{$name}" class="form-checkbox" {$value}>
-                    <span class="ml-2">{$label}</span>
-                </label>
-                @error('{$name}')
-                    <p class="text-red-500 text-xs italic">{{ \$message }}</p>
-                @enderror
-            </div>
-            HTML;
+            $html .= '            <label class="inline-flex items-center">' . PHP_EOL;
+            $html .= '                <input type="checkbox" name="' . $name . '" class="form-checkbox" ' . $value . '>' . PHP_EOL;
+            $html .= '                <span class="ml-2">' . $label . '</span>' . PHP_EOL;
+            $html .= '            </label>' . PHP_EOL;
+        } else {
+            $html .= '            <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">' . PHP_EOL;
+            $html .= '                ' . $label . PHP_EOL;
+            $html .= '            </label>' . PHP_EOL;
+            $html .= '            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" type="' . $type . '" name="' . $name . '" value="' . $value . '">' . PHP_EOL;
         }
         
-        return <<<HTML
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="{$name}">
-                {$label}
-            </label>
-            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="{$name}" type="{$type}" name="{$name}" value="{$value}">
-            @error('{$name}')
-                <p class="text-red-500 text-xs italic">{{ \$message }}</p>
-            @enderror
-        </div>
-        HTML;
+        $html .= '            @error(\'' . $name . '\')' . PHP_EOL;
+        $html .= '                <p class="text-red-500 text-xs italic">{{ $message }}</p>' . PHP_EOL;
+        $html .= '            @enderror' . PHP_EOL;
+        $html .= '        </div>';
+        
+        return $html;
     }
     
     /**
@@ -295,17 +290,17 @@ class ViewGenerator extends BaseGenerator
      */
     protected function generateTextareaField($name, $label, $value)
     {
-        return <<<HTML
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="{$name}">
-                {$label}
-            </label>
-            <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="{$name}" name="{$name}" rows="5">{$value}</textarea>
-            @error('{$name}')
-                <p class="text-red-500 text-xs italic">{{ \$message }}</p>
-            @enderror
-        </div>
-        HTML;
+        $html = '<div class="mb-4">' . PHP_EOL;
+        $html .= '            <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">' . PHP_EOL;
+        $html .= '                ' . $label . PHP_EOL;
+        $html .= '            </label>' . PHP_EOL;
+        $html .= '            <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" name="' . $name . '" rows="5">' . $value . '</textarea>' . PHP_EOL;
+        $html .= '            @error(\'' . $name . '\')' . PHP_EOL;
+        $html .= '                <p class="text-red-500 text-xs italic">{{ $message }}</p>' . PHP_EOL;
+        $html .= '            @enderror' . PHP_EOL;
+        $html .= '        </div>';
+        
+        return $html;
     }
     
     /**
@@ -327,7 +322,7 @@ class ViewGenerator extends BaseGenerator
         $html .= '            <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" name="' . $name . '">' . PHP_EOL;
         $html .= '                <option value="">Select ' . $relatedModel . '</option>' . PHP_EOL;
         $html .= '                @foreach($' . $name . 'Options ?? [] as $id => $optionName)' . PHP_EOL;
-        $html .= '                    <option value="{{ $id }}" {{ ' . $value . ' == $id ? \'selected\' : \'\' }}>{{ $optionName }}</option>' . PHP_EOL;
+        $html .= '                    <option value="{{ $id }}" @if(' . $value . ' == $id) selected @endif>{{ $optionName }}</option>' . PHP_EOL;
         $html .= '                @endforeach' . PHP_EOL;
         $html .= '            </select>' . PHP_EOL;
         $html .= '            @error(\'' . $name . '\')' . PHP_EOL;
