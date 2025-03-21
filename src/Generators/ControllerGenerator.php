@@ -45,6 +45,7 @@ class ControllerGenerator extends BaseGenerator
             'validationRules' => $this->generateValidationRules($fields),
             'foreignKeyImports' => $this->generateForeignKeyImports($foreignKeys),
             'foreignKeyVariables' => $this->generateForeignKeyVariables($foreignKeys),
+            'compactVariables' => $this->generateCompactVariables($modelVariableSingular, $foreignKeys),
         ];
         
         $stubName = $isApi ? 'api-controller' : 'controller';
@@ -238,5 +239,25 @@ class ControllerGenerator extends BaseGenerator
         }
         
         return implode("\n        ", array_unique($variables));
+    }
+    
+    /**
+     * Generate compact variables string for view.
+     *
+     * @param string $modelVariable
+     * @param array $foreignKeys
+     * @return string
+     */
+    protected function generateCompactVariables($modelVariable, $foreignKeys)
+    {
+        $variables = [$modelVariable];
+        
+        if (!empty($foreignKeys)) {
+            foreach ($foreignKeys as $foreignKey) {
+                $variables[] = "{$foreignKey['name']}Options";
+            }
+        }
+        
+        return "'" . implode("', '", $variables) . "'";
     }
 } 

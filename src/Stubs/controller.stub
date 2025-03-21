@@ -26,7 +26,7 @@ class {{ class }} extends Controller
     {
         {{ foreignKeyVariables }}
         
-        return view('{{ viewName }}.create', compact('{{ modelVariableSingular }}'{{ foreignKeyVariables ? ', \'' . implode('\', \'', array_map(function($fk) { return $fk['name'] . 'Options'; }, $foreignKeys ?? [])) . '\'' : '' }}));
+        return view('{{ viewName }}.create', compact({{ compactVariables }}));
     }
 
     /**
@@ -34,20 +34,11 @@ class {{ class }} extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            // Add validation rules based on your schema
-        ]);
+        $validated = $request->validate({{ validationRules }});
         
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
+        {{ modelName }}::create($validated);
         
-        {{ modelName }}::create($request->all());
-        
-        return redirect()->route('{{ viewName }}.index')
-            ->with('success', '{{ modelName }} created successfully.');
+        return redirect()->route('{{ viewName }}.index')->with('success', '{{ modelName }} created successfully.');
     }
 
     /**
@@ -65,7 +56,7 @@ class {{ class }} extends Controller
     {
         {{ foreignKeyVariables }}
         
-        return view('{{ viewName }}.edit', compact('{{ modelVariableSingular }}'{{ foreignKeyVariables ? ', \'' . implode('\', \'', array_map(function($fk) { return $fk['name'] . 'Options'; }, $foreignKeys ?? [])) . '\'' : '' }}));
+        return view('{{ viewName }}.edit', compact({{ compactVariables }}));
     }
 
     /**
@@ -73,20 +64,11 @@ class {{ class }} extends Controller
      */
     public function update(Request $request, {{ modelName }} ${{ modelVariableSingular }})
     {
-        $validator = Validator::make($request->all(), [
-            // Add validation rules based on your schema
-        ]);
+        $validated = $request->validate({{ validationRules }});
         
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
+        ${{ modelVariableSingular }}->update($validated);
         
-        ${{ modelVariableSingular }}->update($request->all());
-        
-        return redirect()->route('{{ viewName }}.index')
-            ->with('success', '{{ modelName }} updated successfully.');
+        return redirect()->route('{{ viewName }}.index')->with('success', '{{ modelName }} updated successfully.');
     }
 
     /**
@@ -96,7 +78,6 @@ class {{ class }} extends Controller
     {
         ${{ modelVariableSingular }}->delete();
         
-        return redirect()->route('{{ viewName }}.index')
-            ->with('success', '{{ modelName }} deleted successfully.');
+        return redirect()->route('{{ viewName }}.index')->with('success', '{{ modelName }} deleted successfully.');
     }
 } 
