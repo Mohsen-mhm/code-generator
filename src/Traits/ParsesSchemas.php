@@ -123,7 +123,7 @@ trait ParsesSchemas
             default => 'string',
         };
         
-        return "'{$name}' => '{$castType}'";
+        return "'{$name}' => '{$castType}',";
     }
 
     protected function getValidationRule($field)
@@ -183,7 +183,7 @@ trait ParsesSchemas
             $rules[] = "unique:{$table},{$name}";
         }
         
-        return "'{$name}' => '" . implode('|', $rules) . "'";
+        return "'{$name}' => '" . implode('|', $rules) . "',";
     }
 
     protected function getFormField($field)
