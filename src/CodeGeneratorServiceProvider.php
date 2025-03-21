@@ -17,6 +17,7 @@ use MohsenMhm\CodeGenerator\Commands\GenerateViewsCommand;
 use MohsenMhm\CodeGenerator\Commands\RegenerateViewsCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateSeederCommand;
 use MohsenMhm\CodeGenerator\Commands\GenerateRequestCommand;
+use MohsenMhm\CodeGenerator\Commands\PublishStubsCommand;
 
 class CodeGeneratorServiceProvider extends ServiceProvider
 {
@@ -51,11 +52,16 @@ class CodeGeneratorServiceProvider extends ServiceProvider
                 GenerateSeederCommand::class,
                 GenerateRequestCommand::class,
                 RegenerateViewsCommand::class,
+                PublishStubsCommand::class,
             ]);
 
             $this->publishes([
                 __DIR__.'/../config/code-generator.php' => config_path('code-generator.php'),
             ], 'config');
+            
+            $this->publishes([
+                __DIR__.'/../stubs' => base_path('stubs/code-generator'),
+            ], 'stubs');
         }
     }
 } 

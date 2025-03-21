@@ -1,5 +1,5 @@
 {
-    "name": "mohsen-mhm/laravel-code-generator",
+    "name": "mohsen-mhm/code-generator",
     "description": "Advanced code generator for Laravel with Livewire 3 support",
     "type": "library",
     "license": "MIT",
