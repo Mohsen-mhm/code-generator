@@ -75,7 +75,7 @@ class ControllerGenerator extends BaseGenerator
     }
     
     /**
-     * Generate validation rules based on schema.
+     * Generate validation rules for fields.
      *
      * @param array $fields
      * @return string
@@ -91,7 +91,6 @@ class ControllerGenerator extends BaseGenerator
         foreach ($fields as $field) {
             $name = $field['name'];
             $type = $field['type'];
-            $modifiers = $field['modifiers'] ?? [];
             
             // Skip primary keys, timestamps, etc.
             if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'])) {
@@ -100,69 +99,41 @@ class ControllerGenerator extends BaseGenerator
             
             $fieldRules = [];
             
-            // Required by default unless nullable
-            if (!in_array('nullable', $modifiers)) {
+            if (Str::endsWith($name, '_id')) {
                 $fieldRules[] = 'required';
+                $fieldRules[] = 'exists:' . Str::plural(str_replace('_id', '', $name)) . ',id';
+            } elseif ($type === 'string') {
+                $fieldRules[] = 'required';
+                $fieldRules[] = 'string';
+                $fieldRules[] = 'max:255';
+            } elseif ($type === 'text' || $type === 'longText' || $type === 'mediumText') {
+                $fieldRules[] = 'required';
+                $fieldRules[] = 'string';
+            } elseif ($type === 'integer' || $type === 'bigInteger' || $type === 'smallInteger' || $type === 'tinyInteger') {
+                $fieldRules[] = 'required';
+                $fieldRules[] = 'integer';
+            } elseif ($type === 'decimal' || $type === 'float' || $type === 'double') {
+                $fieldRules[] = 'required';
+                $fieldRules[] = 'numeric';
+            } elseif ($type === 'boolean') {
+                $fieldRules[] = 'boolean';
+            } elseif ($type === 'date' || $type === 'dateTime' || $type === 'timestamp') {
+                $fieldRules[] = 'nullable';
+                $fieldRules[] = 'date';
+            } elseif ($type === 'time') {
+                $fieldRules[] = 'nullable';
+                $fieldRules[] = 'date_format:H:i:s';
+            } elseif ($type === 'year') {
+                $fieldRules[] = 'nullable';
+                $fieldRules[] = 'date_format:Y';
+            } elseif ($type === 'enum') {
+                $fieldRules[] = 'required';
+                $fieldRules[] = 'string';
+            } elseif ($type === 'json') {
+                $fieldRules[] = 'nullable';
+                $fieldRules[] = 'json';
             } else {
                 $fieldRules[] = 'nullable';
-            }
-            
-            // Add type-specific rules
-            switch ($type) {
-                case 'string':
-                    $fieldRules[] = 'string';
-                    $fieldRules[] = 'max:255';
-                    break;
-                case 'text':
-                case 'mediumText':
-                case 'longText':
-                    $fieldRules[] = 'string';
-                    break;
-                case 'integer':
-                case 'bigInteger':
-                case 'smallInteger':
-                case 'tinyInteger':
-                    $fieldRules[] = 'integer';
-                    break;
-                case 'float':
-                case 'double':
-                case 'decimal':
-                    $fieldRules[] = 'numeric';
-                    break;
-                case 'boolean':
-                    $fieldRules[] = 'boolean';
-                    break;
-                case 'date':
-                    $fieldRules[] = 'date';
-                    break;
-                case 'dateTime':
-                case 'timestamp':
-                    $fieldRules[] = 'date';
-                    break;
-                case 'time':
-                    $fieldRules[] = 'date_format:H:i:s';
-                    break;
-                case 'json':
-                case 'jsonb':
-                    $fieldRules[] = 'array';
-                    break;
-                case 'foreignId':
-                    $fieldRules[] = 'exists:' . Str::snake(Str::pluralStudly(str_replace('_id', '', $name))) . ',id';
-                    break;
-            }
-            
-            // Add special rules based on field name
-            if (Str::contains($name, 'email')) {
-                $fieldRules[] = 'email';
-            }
-            
-            if (Str::contains($name, 'password')) {
-                $fieldRules[] = 'min:8';
-            }
-            
-            if (Str::endsWith($name, '_id') && !in_array('exists:', $fieldRules)) {
-                $tableName = Str::snake(Str::pluralStudly(str_replace('_id', '', $name)));
-                $fieldRules[] = "exists:{$tableName},id";
             }
             
             $rules[] = "'{$name}' => [" . implode(', ', array_map(function ($rule) {
@@ -209,7 +180,7 @@ class ControllerGenerator extends BaseGenerator
     protected function generateForeignKeyImports($foreignKeys)
     {
         if (empty($foreignKeys)) {
-            return '';
+            return "";
         }
         
         $imports = [];
@@ -231,20 +202,23 @@ class ControllerGenerator extends BaseGenerator
     protected function generateForeignKeyVariables($foreignKeys)
     {
         if (empty($foreignKeys)) {
-            return '';
+            return "";
         }
         
         $variables = [];
         
         foreach ($foreignKeys as $foreignKey) {
-            $variables[] = "\${$foreignKey['name']}Options = {$foreignKey['model']}::pluck('name', 'id')->toArray();";
+            $model = $foreignKey['model'];
+            $name = $foreignKey['name'];
+            
+            $variables[] = "\${$name}Options = {$model}::pluck('name', 'id')->toArray();";
         }
         
-        return implode("\n        ", array_unique($variables));
+        return implode("\n        ", $variables);
     }
     
     /**
-     * Generate view parameters for create method.
+     * Generate create view parameters.
      *
      * @param array $foreignKeys
      * @return string
@@ -264,7 +238,7 @@ class ControllerGenerator extends BaseGenerator
     }
     
     /**
-     * Generate view parameters for edit method.
+     * Generate edit view parameters.
      *
      * @param string $modelVariable
      * @param array $foreignKeys

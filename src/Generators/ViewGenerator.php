@@ -175,6 +175,7 @@ class ViewGenerator extends BaseGenerator
         }
         
         $formFields = [];
+        $modelVariable = Str::camel($this->name);
         
         foreach ($fields as $field) {
             $name = $field['name'];
@@ -186,29 +187,187 @@ class ViewGenerator extends BaseGenerator
             }
             
             $label = Str::title(str_replace('_', ' ', $name));
-            $value = $isEdit ? "{{ \$" . Str::camel($this->name) . "->{$name} }}" : "{{ old('{$name}') }}";
             
-            if ($type === 'text' || $type === 'longText' || $type === 'mediumText') {
-                $formFields[] = $this->generateTextareaField($name, $label, $value);
+            if (Str::endsWith($name, '_id')) {
+                // Foreign key field
+                $relatedModel = Str::studly(str_replace('_id', '', $name));
+                $formFields[] = $this->generateForeignKeyField($name, $label, $relatedModel, $modelVariable, $isEdit);
+            } elseif ($type === 'text' || $type === 'longText' || $type === 'mediumText') {
+                // Textarea field
+                $formFields[] = $this->generateTextareaField($name, $label, $modelVariable, $isEdit);
             } elseif ($type === 'boolean') {
-                $checked = $isEdit ? "{{ \$" . Str::camel($this->name) . "->{$name} ? 'checked' : '' }}" : "{{ old('{$name}') ? 'checked' : '' }}";
-                $formFields[] = $this->generateInputField($name, $label, 'checkbox', $checked);
-            } elseif (Str::endsWith($name, '_id')) {
-                $formFields[] = $this->generateSelectField($name, $label, $value);
-            } elseif ($name === 'password') {
-                $formFields[] = $this->generateInputField($name, $label, 'password', '');
-            } elseif (Str::contains($name, 'email')) {
-                $formFields[] = $this->generateInputField($name, $label, 'email', $value);
+                // Checkbox field
+                $formFields[] = $this->generateCheckboxField($name, $label, $modelVariable, $isEdit);
             } elseif ($type === 'date' || $type === 'dateTime' || $type === 'timestamp') {
-                $formFields[] = $this->generateInputField($name, $label, 'datetime-local', $value);
-            } elseif ($type === 'time') {
-                $formFields[] = $this->generateInputField($name, $label, 'time', $value);
+                // Date field
+                $formFields[] = $this->generateDateField($name, $label, $modelVariable, $isEdit);
             } else {
-                $formFields[] = $this->generateInputField($name, $label, 'text', $value);
+                // Regular input field
+                $inputType = $this->getInputType($name, $type);
+                $formFields[] = $this->generateInputField($name, $label, $inputType, $modelVariable, $isEdit);
             }
         }
         
-        return implode("\n            ", $formFields);
+        return implode("\n\n            ", $formFields);
+    }
+    
+    /**
+     * Get the input type for a field.
+     *
+     * @param string $name
+     * @param string $type
+     * @return string
+     */
+    protected function getInputType($name, $type)
+    {
+        if ($name === 'email' || Str::contains($name, 'email')) {
+            return 'email';
+        } elseif ($name === 'password' || Str::contains($name, 'password')) {
+            return 'password';
+        } elseif ($type === 'integer' || $type === 'bigInteger' || $type === 'smallInteger' || $type === 'tinyInteger') {
+            return 'number';
+        } elseif ($type === 'decimal' || $type === 'float' || $type === 'double') {
+            return 'number';
+        } else {
+            return 'text';
+        }
+    }
+    
+    /**
+     * Generate a regular input field.
+     *
+     * @param string $name
+     * @param string $label
+     * @param string $type
+     * @param string $modelVariable
+     * @param bool $isEdit
+     * @return string
+     */
+    protected function generateInputField($name, $label, $type, $modelVariable, $isEdit)
+    {
+        $value = $isEdit 
+            ? "{{ \${$modelVariable}->{$name} }}"
+            : "{{ old('{$name}') }}";
+        
+        return '<div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">
+                    ' . $label . '
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" type="' . $type . '" name="' . $name . '" value="' . $value . '">
+                @error(\'' . $name . '\')
+                    <p class="text-red-500 text-xs italic">{{ $message }}</p>
+                @enderror
+            </div>';
+    }
+    
+    /**
+     * Generate a textarea field.
+     *
+     * @param string $name
+     * @param string $label
+     * @param string $modelVariable
+     * @param bool $isEdit
+     * @return string
+     */
+    protected function generateTextareaField($name, $label, $modelVariable, $isEdit)
+    {
+        $value = $isEdit 
+            ? "{{ \${$modelVariable}->{$name} }}"
+            : "{{ old('{$name}') }}";
+        
+        return '<div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">
+                    ' . $label . '
+                </label>
+                <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" name="' . $name . '" rows="5">' . $value . '</textarea>
+                @error(\'' . $name . '\')
+                    <p class="text-red-500 text-xs italic">{{ $message }}</p>
+                @enderror
+            </div>';
+    }
+    
+    /**
+     * Generate a checkbox field.
+     *
+     * @param string $name
+     * @param string $label
+     * @param string $modelVariable
+     * @param bool $isEdit
+     * @return string
+     */
+    protected function generateCheckboxField($name, $label, $modelVariable, $isEdit)
+    {
+        $checked = $isEdit 
+            ? "{{ \${$modelVariable}->{$name} ? 'checked' : '' }}"
+            : "{{ old('{$name}') ? 'checked' : '' }}";
+        
+        return '<div class="mb-4">
+                <label class="inline-flex items-center">
+                    <input type="checkbox" name="' . $name . '" class="form-checkbox" ' . $checked . '>
+                    <span class="ml-2">' . $label . '</span>
+                </label>
+                @error(\'' . $name . '\')
+                    <p class="text-red-500 text-xs italic">{{ $message }}</p>
+                @enderror
+            </div>';
+    }
+    
+    /**
+     * Generate a date field.
+     *
+     * @param string $name
+     * @param string $label
+     * @param string $modelVariable
+     * @param bool $isEdit
+     * @return string
+     */
+    protected function generateDateField($name, $label, $modelVariable, $isEdit)
+    {
+        $value = $isEdit 
+            ? "{{ \${$modelVariable}->{$name} ? \${$modelVariable}->{$name}->format('Y-m-d\\TH:i') : '' }}"
+            : "{{ old('{$name}') }}";
+        
+        return '<div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">
+                    ' . $label . '
+                </label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" type="datetime-local" name="' . $name . '" value="' . $value . '">
+                @error(\'' . $name . '\')
+                    <p class="text-red-500 text-xs italic">{{ $message }}</p>
+                @enderror
+            </div>';
+    }
+    
+    /**
+     * Generate a foreign key field.
+     *
+     * @param string $name
+     * @param string $label
+     * @param string $relatedModel
+     * @param string $modelVariable
+     * @param bool $isEdit
+     * @return string
+     */
+    protected function generateForeignKeyField($name, $label, $relatedModel, $modelVariable, $isEdit)
+    {
+        $value = $isEdit 
+            ? "\${$modelVariable}->{$name}"
+            : "old('{$name}')";
+        
+        return '<div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">
+                    ' . $label . '
+                </label>
+                <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" name="' . $name . '">
+                    <option value="">Select ' . $relatedModel . '</option>
+                    @foreach($' . $name . 'Options ?? [] as $id => $optionName)
+                        <option value="{{ $id }}" @if(' . $value . ' == $id) selected @endif>{{ $optionName }}</option>
+                    @endforeach
+                </select>
+                @error(\'' . $name . '\')
+                    <p class="text-red-500 text-xs italic">{{ $message }}</p>
+                @enderror
+            </div>';
     }
     
     /**
@@ -245,91 +404,5 @@ class ViewGenerator extends BaseGenerator
         }
         
         return implode("\n        ", $showFields);
-    }
-    
-    /**
-     * Generate an input field.
-     *
-     * @param string $name
-     * @param string $label
-     * @param string $type
-     * @param string $value
-     * @return string
-     */
-    protected function generateInputField($name, $label, $type, $value)
-    {
-        $html = '<div class="mb-4">' . PHP_EOL;
-        
-        if ($type === 'checkbox') {
-            $html .= '            <label class="inline-flex items-center">' . PHP_EOL;
-            $html .= '                <input type="checkbox" name="' . $name . '" class="form-checkbox" ' . $value . '>' . PHP_EOL;
-            $html .= '                <span class="ml-2">' . $label . '</span>' . PHP_EOL;
-            $html .= '            </label>' . PHP_EOL;
-        } else {
-            $html .= '            <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">' . PHP_EOL;
-            $html .= '                ' . $label . PHP_EOL;
-            $html .= '            </label>' . PHP_EOL;
-            $html .= '            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" type="' . $type . '" name="' . $name . '" value="' . $value . '">' . PHP_EOL;
-        }
-        
-        $html .= '            @error(\'' . $name . '\')' . PHP_EOL;
-        $html .= '                <p class="text-red-500 text-xs italic">{{ $message }}</p>' . PHP_EOL;
-        $html .= '            @enderror' . PHP_EOL;
-        $html .= '        </div>';
-        
-        return $html;
-    }
-    
-    /**
-     * Generate a textarea field.
-     *
-     * @param string $name
-     * @param string $label
-     * @param string $value
-     * @return string
-     */
-    protected function generateTextareaField($name, $label, $value)
-    {
-        $html = '<div class="mb-4">' . PHP_EOL;
-        $html .= '            <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">' . PHP_EOL;
-        $html .= '                ' . $label . PHP_EOL;
-        $html .= '            </label>' . PHP_EOL;
-        $html .= '            <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" name="' . $name . '" rows="5">' . $value . '</textarea>' . PHP_EOL;
-        $html .= '            @error(\'' . $name . '\')' . PHP_EOL;
-        $html .= '                <p class="text-red-500 text-xs italic">{{ $message }}</p>' . PHP_EOL;
-        $html .= '            @enderror' . PHP_EOL;
-        $html .= '        </div>';
-        
-        return $html;
-    }
-    
-    /**
-     * Generate a select field.
-     *
-     * @param string $name
-     * @param string $label
-     * @param string $value
-     * @return string
-     */
-    protected function generateSelectField($name, $label, $value)
-    {
-        $relatedModel = Str::studly(str_replace('_id', '', $name));
-        
-        $html = '<div class="mb-4">' . PHP_EOL;
-        $html .= '            <label class="block text-gray-700 text-sm font-bold mb-2" for="' . $name . '">' . PHP_EOL;
-        $html .= '                ' . $label . PHP_EOL;
-        $html .= '            </label>' . PHP_EOL;
-        $html .= '            <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="' . $name . '" name="' . $name . '">' . PHP_EOL;
-        $html .= '                <option value="">Select ' . $relatedModel . '</option>' . PHP_EOL;
-        $html .= '                @foreach($' . $name . 'Options ?? [] as $id => $optionName)' . PHP_EOL;
-        $html .= '                    <option value="{{ $id }}" @if(' . $value . ' == $id) selected @endif>{{ $optionName }}</option>' . PHP_EOL;
-        $html .= '                @endforeach' . PHP_EOL;
-        $html .= '            </select>' . PHP_EOL;
-        $html .= '            @error(\'' . $name . '\')' . PHP_EOL;
-        $html .= '                <p class="text-red-500 text-xs italic">{{ $message }}</p>' . PHP_EOL;
-        $html .= '            @enderror' . PHP_EOL;
-        $html .= '        </div>';
-        
-        return $html;
     }
 } 

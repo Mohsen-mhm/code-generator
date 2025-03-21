@@ -12,22 +12,17 @@ class ModelGenerator extends BaseGenerator
         $modelNamespace = $this->getNamespace('model');
         $modelPath = $this->getPath('models') . '/' . $modelName . '.php';
         
-        $tableName = $this->options['table'] ?? Str::snake(Str::pluralStudly($modelName));
-        
+        // Parse schema to find fields
         $fields = $this->parseSchema($this->schema);
         
         $replacements = [
             'namespace' => $modelNamespace,
             'class' => $modelName,
-            'table' => $tableName,
             'fillable' => $this->generateFillable($fields),
             'casts' => $this->generateCasts($fields),
             'relationships' => $this->generateRelationships($fields),
             'imports' => $this->generateImports($fields),
             'traits' => $this->generateTraits($fields),
-            'timestamps' => config('code-generator.models.timestamps') ? 'public $timestamps = true;' : 'public $timestamps = false;',
-            'softDeletesImport' => config('code-generator.models.soft_deletes') ? 'use Illuminate\\Database\\Eloquent\\SoftDeletes;' : '',
-            'softDeletes' => config('code-generator.models.soft_deletes') ? ', SoftDeletes' : '',
         ];
         
         $contents = $this->getStubContents('model', $replacements);
@@ -86,38 +81,20 @@ class ModelGenerator extends BaseGenerator
             $name = $field['name'];
             $type = $field['type'];
             
-            // Skip primary keys
-            if ($name === 'id') {
-                continue;
-            }
-            
-            // Add type-specific casts
-            switch ($type) {
-                case 'boolean':
-                    $casts[] = "'{$name}' => 'boolean'";
-                    break;
-                case 'integer':
-                case 'bigInteger':
-                case 'smallInteger':
-                case 'tinyInteger':
-                    $casts[] = "'{$name}' => 'integer'";
-                    break;
-                case 'decimal':
-                case 'float':
-                case 'double':
-                    $casts[] = "'{$name}' => 'float'";
-                    break;
-                case 'date':
-                    $casts[] = "'{$name}' => 'date'";
-                    break;
-                case 'dateTime':
-                case 'timestamp':
-                    $casts[] = "'{$name}' => 'datetime'";
-                    break;
-                case 'json':
-                case 'jsonb':
-                    $casts[] = "'{$name}' => 'array'";
-                    break;
+            if ($type === 'boolean') {
+                $casts[] = "'{$name}' => 'boolean'";
+            } elseif ($type === 'integer' || $type === 'bigInteger' || $type === 'smallInteger' || $type === 'tinyInteger') {
+                $casts[] = "'{$name}' => 'integer'";
+            } elseif ($type === 'decimal' || $type === 'float' || $type === 'double') {
+                $casts[] = "'{$name}' => 'float'";
+            } elseif ($type === 'date') {
+                $casts[] = "'{$name}' => 'date'";
+            } elseif ($type === 'dateTime' || $type === 'timestamp') {
+                $casts[] = "'{$name}' => 'datetime'";
+            } elseif ($type === 'time') {
+                $casts[] = "'{$name}' => 'datetime'";
+            } elseif ($type === 'json') {
+                $casts[] = "'{$name}' => 'array'";
             }
         }
         
@@ -141,7 +118,6 @@ class ModelGenerator extends BaseGenerator
         }
         
         $relationships = [];
-        $tableName = Str::snake(Str::pluralStudly($this->name));
         
         foreach ($fields as $field) {
             $name = $field['name'];

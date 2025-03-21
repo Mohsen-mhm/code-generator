@@ -36,7 +36,6 @@ class {{ class }} extends Controller
     {
         $validated = $request->validate({{ validationRules }});
         
-        // Create the record
         {{ modelName }}::create($validated);
         
         return redirect()->route('{{ viewName }}.index')->with('success', '{{ modelName }} created successfully.');
