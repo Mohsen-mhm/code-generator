@@ -34,6 +34,9 @@ class ViewGenerator extends BaseGenerator
             $this->filesystem->makeDirectory($viewPath, 0755, true);
         }
         
+        // Parse schema to find fields
+        $fields = $this->parseSchema($this->schema);
+        
         // Generate index view
         $indexPath = $viewPath . '/index.blade.php';
         $indexReplacements = [
@@ -42,6 +45,8 @@ class ViewGenerator extends BaseGenerator
             'modelVariablePlural' => $modelVariablePlural,
             'viewName' => $viewName,
             'routeName' => $viewName,
+            'tableHeaders' => $this->generateTableHeaders($fields),
+            'tableRows' => $this->generateTableRows($fields, $modelVariable),
         ];
         $indexContents = $this->getStubContents('view-index', $indexReplacements);
         
@@ -52,7 +57,7 @@ class ViewGenerator extends BaseGenerator
             'modelVariable' => $modelVariable,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'fields' => $this->generateFormFields($this->parseSchema($this->schema)),
+            'fields' => $this->generateFormFields($fields),
         ];
         $createContents = $this->getStubContents('view-create', $createReplacements);
         
@@ -63,7 +68,7 @@ class ViewGenerator extends BaseGenerator
             'modelVariable' => $modelVariable,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'fields' => $this->generateFormFields($this->parseSchema($this->schema), true),
+            'fields' => $this->generateFormFields($fields, true),
         ];
         $editContents = $this->getStubContents('view-edit', $editReplacements);
         
@@ -74,7 +79,7 @@ class ViewGenerator extends BaseGenerator
             'modelVariable' => $modelVariable,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'fields' => $this->generateShowFields($this->parseSchema($this->schema)),
+            'fields' => $this->generateShowFields($fields, $modelVariable),
         ];
         $showContents = $this->getStubContents('view-show', $showReplacements);
         
@@ -105,6 +110,58 @@ class ViewGenerator extends BaseGenerator
     }
     
     /**
+     * Generate table headers for index view.
+     *
+     * @param array $fields
+     * @return string
+     */
+    protected function generateTableHeaders($fields)
+    {
+        $headers = ['<th class="py-3 px-6 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>'];
+        
+        foreach ($fields as $field) {
+            $name = $field['name'];
+            
+            // Skip certain fields
+            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'password'])) {
+                continue;
+            }
+            
+            $label = Str::title(str_replace('_', ' ', $name));
+            $headers[] = '<th class="py-3 px-6 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">' . $label . '</th>';
+        }
+        
+        $headers[] = '<th class="py-3 px-6 bg-gray-100 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>';
+        
+        return implode("\n                    ", $headers);
+    }
+    
+    /**
+     * Generate table rows for index view.
+     *
+     * @param array $fields
+     * @param string $modelVariable
+     * @return string
+     */
+    protected function generateTableRows($fields, $modelVariable)
+    {
+        $rows = ['<td class="py-4 px-6">{{ $' . $modelVariable . '->id }}</td>'];
+        
+        foreach ($fields as $field) {
+            $name = $field['name'];
+            
+            // Skip certain fields
+            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'password'])) {
+                continue;
+            }
+            
+            $rows[] = '<td class="py-4 px-6">{{ $' . $modelVariable . '->' . $name . ' }}</td>';
+        }
+        
+        return implode("\n                    ", $rows);
+    }
+    
+    /**
      * Generate form fields for create/edit views.
      *
      * @param array $fields
@@ -117,105 +174,76 @@ class ViewGenerator extends BaseGenerator
             return '';
         }
         
-        $formFields = '';
+        $formFields = [];
         
         foreach ($fields as $field) {
             $name = $field['name'];
             $type = $field['type'];
             
-            // Skip primary keys, timestamps, etc.
+            // Skip certain fields
             if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'])) {
                 continue;
             }
             
             $label = Str::title(str_replace('_', ' ', $name));
-            $inputType = $this->getInputType($name, $type);
+            $value = $isEdit ? '{{ $' . Str::camel(str_replace('Controller', '', $this->name)) . '->' . $name . ' }}' : 'old(\'' . $name . '\')';
             
-            $value = $isEdit ? "{{ \$" . Str::camel($this->name) . "->{$name} }}" : "{{ old('{$name}') }}";
-            
-            if ($inputType === 'textarea') {
-                $formFields .= $this->generateTextareaField($name, $label, $value);
-            } elseif ($inputType === 'select') {
-                $formFields .= $this->generateSelectField($name, $label, $value);
+            if ($type === 'text' || $type === 'mediumText' || $type === 'longText') {
+                $formFields[] = $this->generateTextareaField($name, $label, $value);
+            } elseif ($type === 'boolean') {
+                $formFields[] = $this->generateInputField($name, $label, 'checkbox', $isEdit ? '{{ $' . Str::camel(str_replace('Controller', '', $this->name)) . '->' . $name . ' ? \'checked\' : \'\' }}' : 'checked');
+            } elseif (Str::endsWith($name, '_id') || $type === 'foreignId') {
+                $formFields[] = $this->generateSelectField($name, $label, $value);
+            } elseif (Str::contains($name, 'password')) {
+                $formFields[] = $this->generateInputField($name, $label, 'password', '');
+            } elseif (Str::contains($name, 'email')) {
+                $formFields[] = $this->generateInputField($name, $label, 'email', $value);
+            } elseif ($type === 'date' || $type === 'dateTime' || $type === 'timestamp') {
+                $formFields[] = $this->generateInputField($name, $label, 'date', $value);
+            } elseif ($type === 'time') {
+                $formFields[] = $this->generateInputField($name, $label, 'time', $value);
             } else {
-                $formFields .= $this->generateInputField($name, $label, $inputType, $value);
+                $formFields[] = $this->generateInputField($name, $label, 'text', $value);
             }
         }
         
-        return $formFields;
+        return implode("\n            ", $formFields);
     }
     
     /**
      * Generate show fields for show view.
      *
      * @param array $fields
+     * @param string $modelVariable
      * @return string
      */
-    protected function generateShowFields($fields)
+    protected function generateShowFields($fields, $modelVariable)
     {
         if (empty($fields)) {
             return '';
         }
         
-        $showFields = '';
-        $modelVariable = Str::camel($this->name);
+        $showFields = [];
         
         foreach ($fields as $field) {
             $name = $field['name'];
             
-            // Skip soft delete fields
-            if (in_array($name, ['deleted_at'])) {
+            // Skip certain fields
+            if (in_array($name, ['password'])) {
                 continue;
             }
             
             $label = Str::title(str_replace('_', ' ', $name));
             
-            $showFields .= <<<HTML
+            $showFields[] = <<<HTML
             <div class="mb-4">
-                <h2 class="text-lg font-semibold">{$label}</h2>
-                <p class="mt-1">{{ \${$modelVariable}->{$name} }}</p>
+                <h3 class="text-gray-700 text-sm font-bold mb-2">{$label}:</h3>
+                <p class="text-gray-900">{{ \${$modelVariable}->{$name} }}</p>
             </div>
-
             HTML;
         }
         
-        return $showFields;
-    }
-    
-    /**
-     * Get the input type for a field.
-     *
-     * @param string $name
-     * @param string $type
-     * @return string
-     */
-    protected function getInputType($name, $type)
-    {
-        if (Str::contains($name, ['email'])) {
-            return 'email';
-        }
-        
-        if (Str::contains($name, ['password'])) {
-            return 'password';
-        }
-        
-        if (Str::contains($name, ['date', 'time'])) {
-            return 'datetime-local';
-        }
-        
-        if ($type === 'boolean') {
-            return 'checkbox';
-        }
-        
-        if (in_array($type, ['text', 'mediumText', 'longText'])) {
-            return 'textarea';
-        }
-        
-        if ($type === 'foreignId' || Str::endsWith($name, '_id')) {
-            return 'select';
-        }
-        
-        return 'text';
+        return implode("\n        ", $showFields);
     }
     
     /**
@@ -229,20 +257,17 @@ class ViewGenerator extends BaseGenerator
      */
     protected function generateInputField($name, $label, $type, $value)
     {
-        $valueAttr = $type !== 'checkbox' ? 'value="' . $value . '"' : 'checked';
-        
         if ($type === 'checkbox') {
             return <<<HTML
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="{$name}">
-                    <input type="checkbox" name="{$name}" id="{$name}" {$valueAttr}>
-                    {$label}
+                <label class="inline-flex items-center">
+                    <input type="checkbox" name="{$name}" class="form-checkbox" {$value}>
+                    <span class="ml-2">{$label}</span>
                 </label>
                 @error('{$name}')
                     <p class="text-red-500 text-xs italic">{{ \$message }}</p>
                 @enderror
             </div>
-
             HTML;
         }
         
@@ -251,12 +276,11 @@ class ViewGenerator extends BaseGenerator
             <label class="block text-gray-700 text-sm font-bold mb-2" for="{$name}">
                 {$label}
             </label>
-            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="{$name}" type="{$type}" name="{$name}" {$valueAttr}>
+            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="{$name}" type="{$type}" name="{$name}" value="{$value}">
             @error('{$name}')
                 <p class="text-red-500 text-xs italic">{{ \$message }}</p>
             @enderror
         </div>
-
         HTML;
     }
     
@@ -280,7 +304,6 @@ class ViewGenerator extends BaseGenerator
                 <p class="text-red-500 text-xs italic">{{ \$message }}</p>
             @enderror
         </div>
-
         HTML;
     }
     
@@ -304,14 +327,13 @@ class ViewGenerator extends BaseGenerator
             <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="{$name}" name="{$name}">
                 <option value="">Select {$relatedModel}</option>
                 @foreach(\${$name}Options ?? [] as \$id => \$name)
-                    <option value="{{ \$id }}" {{ {$value} == \$id ? 'selected' : '' }}>{{ \$name }}</option>
+                    <option value="{{ \$id }}" @if({$value} == \$id) selected @endif>{{ \$name }}</option>
                 @endforeach
             </select>
             @error('{$name}')
                 <p class="text-red-500 text-xs italic">{{ \$message }}</p>
             @enderror
         </div>
-
         HTML;
     }
 } 
