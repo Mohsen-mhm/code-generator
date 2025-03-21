@@ -19,7 +19,7 @@ class PostTest extends TestCase
 
     public function test_can_create_record()
     {
-        // Create a user for the foreign key
+        // Create any required related models for foreign keys
         $user = User::factory()->create();
         
         $postData = [
@@ -45,6 +45,7 @@ class PostTest extends TestCase
 
     public function test_can_view_record()
     {
+        // Create any required related models for foreign keys
         $user = User::factory()->create();
         $post = Post::factory()->create(['user_id' => $user->id]);
         
@@ -62,6 +63,7 @@ class PostTest extends TestCase
 
     public function test_can_update_record()
     {
+        // Create any required related models for foreign keys
         $user = User::factory()->create();
         $post = Post::factory()->create(['user_id' => $user->id]);
         
@@ -85,6 +87,7 @@ class PostTest extends TestCase
 
     public function test_can_delete_record()
     {
+        // Create any required related models for foreign keys
         $user = User::factory()->create();
         $post = Post::factory()->create(['user_id' => $user->id]);
         

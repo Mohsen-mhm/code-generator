@@ -54,10 +54,9 @@ class ViewGenerator extends BaseGenerator
         $createPath = $viewPath . '/create.blade.php';
         $createReplacements = [
             'modelName' => $modelName,
-            'modelVariable' => $modelVariable,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'fields' => $this->generateFormFields($fields),
+            'formFields' => $this->generateFormFields($fields),
         ];
         $createContents = $this->getStubContents('view-create', $createReplacements);
         
@@ -68,7 +67,7 @@ class ViewGenerator extends BaseGenerator
             'modelVariable' => $modelVariable,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'fields' => $this->generateFormFields($fields, true),
+            'formFields' => $this->generateFormFields($fields, true),
         ];
         $editContents = $this->getStubContents('view-edit', $editReplacements);
         
@@ -79,34 +78,19 @@ class ViewGenerator extends BaseGenerator
             'modelVariable' => $modelVariable,
             'viewName' => $viewName,
             'routeName' => $viewName,
-            'fields' => $this->generateShowFields($fields, $modelVariable),
+            'detailFields' => $this->generateDetailFields($fields, $modelVariable),
         ];
         $showContents = $this->getStubContents('view-show', $showReplacements);
         
         // Write files
-        $files = [
-            'index' => $indexPath,
-            'create' => $createPath,
-            'edit' => $editPath,
-            'show' => $showPath,
-        ];
+        $this->writeFile($indexPath, $indexContents);
+        $this->writeFile($createPath, $createContents);
+        $this->writeFile($editPath, $editContents);
+        $this->writeFile($showPath, $showContents);
         
-        $created = [];
+        $this->info("Views for [{$modelName}] created successfully.");
         
-        foreach ($files as $type => $path) {
-            $contents = ${$type . 'Contents'};
-            
-            if ($this->writeFile($path, $contents)) {
-                $created[] = $type;
-            }
-        }
-        
-        if (!empty($created)) {
-            $this->info("Views created successfully: " . implode(', ', $created));
-            return true;
-        }
-        
-        return false;
+        return true;
     }
     
     /**
@@ -117,23 +101,27 @@ class ViewGenerator extends BaseGenerator
      */
     protected function generateTableHeaders($fields)
     {
-        $headers = ['<th class="py-3 px-6 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>'];
+        if (empty($fields)) {
+            return '<th class="px-4 py-2">ID</th>';
+        }
+        
+        $headers = ['<th class="px-4 py-2">ID</th>'];
         
         foreach ($fields as $field) {
             $name = $field['name'];
             
             // Skip certain fields
-            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'password'])) {
+            if (in_array($name, ['created_at', 'updated_at', 'deleted_at', 'password'])) {
                 continue;
             }
             
             $label = Str::title(str_replace('_', ' ', $name));
-            $headers[] = '<th class="py-3 px-6 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">' . $label . '</th>';
+            $headers[] = '<th class="px-4 py-2">' . $label . '</th>';
         }
         
-        $headers[] = '<th class="py-3 px-6 bg-gray-100 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>';
+        $headers[] = '<th class="px-4 py-2">Actions</th>';
         
-        return implode("\n                    ", $headers);
+        return implode("\n            ", $headers);
     }
     
     /**
@@ -145,20 +133,94 @@ class ViewGenerator extends BaseGenerator
      */
     protected function generateTableRows($fields, $modelVariable)
     {
-        $rows = ['<td class="py-4 px-6">{{ $' . $modelVariable . '->id }}</td>'];
+        if (empty($fields)) {
+            return '<td class="border px-4 py-2">{{ $' . $modelVariable . '->id }}</td>';
+        }
+        
+        $rows = ['<td class="border px-4 py-2">{{ $' . $modelVariable . '->id }}</td>'];
         
         foreach ($fields as $field) {
             $name = $field['name'];
+            $type = $field['type'];
             
             // Skip certain fields
-            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'password'])) {
+            if (in_array($name, ['created_at', 'updated_at', 'deleted_at', 'password'])) {
                 continue;
             }
             
-            $rows[] = '<td class="py-4 px-6">{{ $' . $modelVariable . '->' . $name . ' }}</td>';
+            if ($type === 'boolean') {
+                $rows[] = '<td class="border px-4 py-2">{{ $' . $modelVariable . '->' . $name . ' ? \'Yes\' : \'No\' }}</td>';
+            } elseif (in_array($type, ['date', 'dateTime', 'timestamp'])) {
+                $rows[] = '<td class="border px-4 py-2">{{ $' . $modelVariable . '->' . $name . ' ? $' . $modelVariable . '->' . $name . '->format(\'Y-m-d\') : \'\' }}</td>';
+            } else {
+                $rows[] = '<td class="border px-4 py-2">{{ $' . $modelVariable . '->' . $name . ' }}</td>';
+            }
         }
         
-        return implode("\n                    ", $rows);
+        return implode("\n                ", $rows);
+    }
+    
+    /**
+     * Generate detail fields for show view.
+     *
+     * @param array $fields
+     * @param string $modelVariable
+     * @return string
+     */
+    protected function generateDetailFields($fields, $modelVariable)
+    {
+        if (empty($fields)) {
+            return '<div class="mb-4">
+                <h2 class="text-lg font-semibold">ID</h2>
+                <p>{{ $' . $modelVariable . '->id }}</p>
+            </div>';
+        }
+        
+        $detailFields = ['<div class="mb-4">
+                <h2 class="text-lg font-semibold">ID</h2>
+                <p>{{ $' . $modelVariable . '->id }}</p>
+            </div>'];
+        
+        foreach ($fields as $field) {
+            $name = $field['name'];
+            $type = $field['type'];
+            
+            // Skip certain fields
+            if (in_array($name, ['password'])) {
+                continue;
+            }
+            
+            $label = Str::title(str_replace('_', ' ', $name));
+            
+            if ($type === 'boolean') {
+                $detailFields[] = '<div class="mb-4">
+                <h2 class="text-lg font-semibold">' . $label . '</h2>
+                <p>{{ $' . $modelVariable . '->' . $name . ' ? \'Yes\' : \'No\' }}</p>
+            </div>';
+            } elseif (in_array($type, ['date', 'dateTime', 'timestamp'])) {
+                $detailFields[] = '<div class="mb-4">
+                <h2 class="text-lg font-semibold">' . $label . '</h2>
+                <p>{{ $' . $modelVariable . '->' . $name . ' ? $' . $modelVariable . '->' . $name . '->format(\'Y-m-d\') : \'\' }}</p>
+            </div>';
+            } else {
+                $detailFields[] = '<div class="mb-4">
+                <h2 class="text-lg font-semibold">' . $label . '</h2>
+                <p>{{ $' . $modelVariable . '->' . $name . ' }}</p>
+            </div>';
+            }
+        }
+        
+        $detailFields[] = '<div class="mb-4">
+                <h2 class="text-lg font-semibold">Created At</h2>
+                <p>{{ $' . $modelVariable . '->created_at->format(\'Y-m-d\') }}</p>
+            </div>';
+        
+        $detailFields[] = '<div class="mb-4">
+                <h2 class="text-lg font-semibold">Updated At</h2>
+                <p>{{ $' . $modelVariable . '->updated_at->format(\'Y-m-d\') }}</p>
+            </div>';
+        
+        return implode("\n            ", $detailFields);
     }
     
     /**
@@ -188,53 +250,35 @@ class ViewGenerator extends BaseGenerator
             
             $label = Str::title(str_replace('_', ' ', $name));
             
-            if (Str::endsWith($name, '_id')) {
-                // Foreign key field
+            if ($type === 'boolean') {
+                $formFields[] = $this->generateCheckboxField($name, $label, $modelVariable, $isEdit);
+            } elseif (in_array($type, ['text', 'longText', 'mediumText'])) {
+                $formFields[] = $this->generateTextareaField($name, $label, $modelVariable, $isEdit);
+            } elseif (in_array($type, ['date', 'dateTime', 'timestamp'])) {
+                $formFields[] = $this->generateDateField($name, $label, $modelVariable, $isEdit);
+            } elseif ($type === 'foreignId' || Str::endsWith($name, '_id')) {
                 $relatedModel = Str::studly(str_replace('_id', '', $name));
                 $formFields[] = $this->generateForeignKeyField($name, $label, $relatedModel, $modelVariable, $isEdit);
-            } elseif ($type === 'text' || $type === 'longText' || $type === 'mediumText') {
-                // Textarea field
-                $formFields[] = $this->generateTextareaField($name, $label, $modelVariable, $isEdit);
-            } elseif ($type === 'boolean') {
-                // Checkbox field
-                $formFields[] = $this->generateCheckboxField($name, $label, $modelVariable, $isEdit);
-            } elseif ($type === 'date' || $type === 'dateTime' || $type === 'timestamp') {
-                // Date field
-                $formFields[] = $this->generateDateField($name, $label, $modelVariable, $isEdit);
             } else {
-                // Regular input field
-                $inputType = $this->getInputType($name, $type);
+                $inputType = 'text';
+                
+                if ($name === 'email') {
+                    $inputType = 'email';
+                } elseif ($name === 'password') {
+                    $inputType = 'password';
+                } elseif (in_array($type, ['integer', 'bigInteger', 'smallInteger', 'tinyInteger', 'decimal', 'float', 'double'])) {
+                    $inputType = 'number';
+                }
+                
                 $formFields[] = $this->generateInputField($name, $label, $inputType, $modelVariable, $isEdit);
             }
         }
         
-        return implode("\n\n            ", $formFields);
+        return implode("\n            ", $formFields);
     }
     
     /**
-     * Get the input type for a field.
-     *
-     * @param string $name
-     * @param string $type
-     * @return string
-     */
-    protected function getInputType($name, $type)
-    {
-        if ($name === 'email' || Str::contains($name, 'email')) {
-            return 'email';
-        } elseif ($name === 'password' || Str::contains($name, 'password')) {
-            return 'password';
-        } elseif ($type === 'integer' || $type === 'bigInteger' || $type === 'smallInteger' || $type === 'tinyInteger') {
-            return 'number';
-        } elseif ($type === 'decimal' || $type === 'float' || $type === 'double') {
-            return 'number';
-        } else {
-            return 'text';
-        }
-    }
-    
-    /**
-     * Generate a regular input field.
+     * Generate an input field.
      *
      * @param string $name
      * @param string $label
@@ -368,41 +412,5 @@ class ViewGenerator extends BaseGenerator
                     <p class="text-red-500 text-xs italic">{{ $message }}</p>
                 @enderror
             </div>';
-    }
-    
-    /**
-     * Generate show fields for show view.
-     *
-     * @param array $fields
-     * @param string $modelVariable
-     * @return string
-     */
-    protected function generateShowFields($fields, $modelVariable)
-    {
-        if (empty($fields)) {
-            return '';
-        }
-        
-        $showFields = [];
-        
-        foreach ($fields as $field) {
-            $name = $field['name'];
-            
-            // Skip certain fields
-            if (in_array($name, ['password'])) {
-                continue;
-            }
-            
-            $label = Str::title(str_replace('_', ' ', $name));
-            
-            $showFields[] = <<<HTML
-            <div class="mb-4">
-                <h3 class="text-gray-700 text-sm font-bold mb-2">{$label}:</h3>
-                <p class="text-gray-900">{{ \${$modelVariable}->{$name} }}</p>
-            </div>
-            HTML;
-        }
-        
-        return implode("\n        ", $showFields);
     }
 } 
