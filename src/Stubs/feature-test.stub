@@ -1,0 +1,119 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ modelNamespace }};
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\WithFaker;
+use Tests\TestCase;
+
+class {{ class }} extends TestCase
+{
+    use RefreshDatabase, WithFaker;
+
+    /**
+     * Test listing records.
+     */
+    public function test_can_view_index_page()
+    {
+        // Create some records
+        {{ model }}::factory()->count(5)->create();
+
+        // Visit the index page
+        $response = $this->get(route('{{ routeName }}.index'));
+
+        // Assert the response is successful
+        $response->assertStatus(200);
+        $response->assertViewIs('{{ routeName }}.index');
+        $response->assertViewHas('{{ modelVariablePlural }}');
+    }
+
+    /**
+     * Test creating a new record.
+     */
+    public function test_can_create_record()
+    {
+        // Visit the create page
+        $response = $this->get(route('{{ routeName }}.create'));
+        $response->assertStatus(200);
+
+        // Prepare data for submission
+        $data = [
+            // Add test data based on your schema
+        ];
+
+        // Submit the form
+        $response = $this->post(route('{{ routeName }}.store'), $data);
+
+        // Assert the record was created
+        $this->assertDatabaseHas('{{ tableName }}', $data);
+
+        // Assert redirection
+        $response->assertRedirect(route('{{ routeName }}.index'));
+        $response->assertSessionHas('success');
+    }
+
+    /**
+     * Test viewing a record.
+     */
+    public function test_can_view_record()
+    {
+        // Create a record
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+
+        // Visit the show page
+        $response = $this->get(route('{{ routeName }}.show', ${{ modelVariable }}->id));
+
+        // Assert the response is successful
+        $response->assertStatus(200);
+        $response->assertViewIs('{{ routeName }}.show');
+        $response->assertViewHas('{{ modelVariable }}');
+    }
+
+    /**
+     * Test editing a record.
+     */
+    public function test_can_edit_record()
+    {
+        // Create a record
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+
+        // Visit the edit page
+        $response = $this->get(route('{{ routeName }}.edit', ${{ modelVariable }}->id));
+        $response->assertStatus(200);
+
+        // Prepare data for submission
+        $data = [
+            // Add test data based on your schema
+        ];
+
+        // Submit the form
+        $response = $this->put(route('{{ routeName }}.update', ${{ modelVariable }}->id), $data);
+
+        // Assert the record was updated
+        $this->assertDatabaseHas('{{ tableName }}', $data);
+
+        // Assert redirection
+        $response->assertRedirect(route('{{ routeName }}.index'));
+        $response->assertSessionHas('success');
+    }
+
+    /**
+     * Test deleting a record.
+     */
+    public function test_can_delete_record()
+    {
+        // Create a record
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+
+        // Delete the record
+        $response = $this->delete(route('{{ routeName }}.destroy', ${{ modelVariable }}->id));
+
+        // Assert the record was deleted
+        $this->assertDatabaseMissing('{{ tableName }}', ['id' => ${{ modelVariable }}->id]);
+
+        // Assert redirection
+        $response->assertRedirect(route('{{ routeName }}.index'));
+        $response->assertSessionHas('success');
+    }
+} 

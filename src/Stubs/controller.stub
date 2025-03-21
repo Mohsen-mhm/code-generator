@@ -1,0 +1,97 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ modelNamespace }};
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class {{ class }} extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        ${{ modelVariablePlural }} = {{ model }}::latest()->paginate(10);
+        
+        return view('{{ viewPath }}.index', compact('{{ modelVariablePlural }}'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        return view('{{ viewPath }}.create');
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            // Add validation rules based on your schema
+        ]);
+        
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        
+        {{ model }}::create($request->all());
+        
+        return redirect()->route('{{ viewPath }}.index')
+            ->with('success', '{{ model }} created successfully.');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show({{ model }} ${{ modelVariable }})
+    {
+        return view('{{ viewPath }}.show', compact('{{ modelVariable }}'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit({{ model }} ${{ modelVariable }})
+    {
+        return view('{{ viewPath }}.edit', compact('{{ modelVariable }}'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, {{ model }} ${{ modelVariable }})
+    {
+        $validator = Validator::make($request->all(), [
+            // Add validation rules based on your schema
+        ]);
+        
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        
+        ${{ modelVariable }}->update($request->all());
+        
+        return redirect()->route('{{ viewPath }}.index')
+            ->with('success', '{{ model }} updated successfully.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy({{ model }} ${{ modelVariable }})
+    {
+        ${{ modelVariable }}->delete();
+        
+        return redirect()->route('{{ viewPath }}.index')
+            ->with('success', '{{ model }} deleted successfully.');
+    }
+} 

@@ -1,0 +1,72 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ modelNamespace }};
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class {{ class }} extends TestCase
+{
+    use RefreshDatabase;
+
+    /**
+     * Test model creation.
+     */
+    public function test_can_create_{{ modelVariable }}()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+        
+        $this->assertInstanceOf({{ model }}::class, ${{ modelVariable }});
+        $this->assertDatabaseHas('{{ tableName }}', ['id' => ${{ modelVariable }}->id]);
+    }
+
+    /**
+     * Test model attributes.
+     */
+    public function test_{{ modelVariable }}_has_correct_attributes()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create([
+            // Add specific attributes to test
+        ]);
+        
+        // Assert the model has the correct attributes
+        // Example: $this->assertEquals('expected', ${{ modelVariable }}->attribute);
+    }
+
+    /**
+     * Test model relationships.
+     */
+    public function test_{{ modelVariable }}_relationships()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+        
+        // Test relationships
+        // Example: $this->assertInstanceOf(RelatedModel::class, ${{ modelVariable }}->relation);
+    }
+
+    /**
+     * Test model scopes.
+     */
+    public function test_{{ modelVariable }}_scopes()
+    {
+        // Create models with different attributes
+        {{ model }}::factory()->count(3)->create([
+            // Add attributes for testing scopes
+        ]);
+        
+        // Test scopes
+        // Example: $this->assertEquals(2, {{ model }}::scopeName()->count());
+    }
+
+    /**
+     * Test model methods.
+     */
+    public function test_{{ modelVariable }}_methods()
+    {
+        ${{ modelVariable }} = {{ model }}::factory()->create();
+        
+        // Test custom methods
+        // Example: $this->assertTrue(${{ modelVariable }}->customMethod());
+    }
+} 

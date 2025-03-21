@@ -1,0 +1,101 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ modelNamespace }};
+{{ useResource }}
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class {{ class }} extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index()
+    {
+        ${{ modelVariablePlural }} = {{ model }}::latest()->paginate(10);
+        
+        return {{ resourceName }}::collection(${{ modelVariablePlural }});
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            // Add validation rules based on your schema
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        ${{ modelVariable }} = {{ model }}::create($request->all());
+        
+        return new {{ resourceName }}(${{ modelVariable }});
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  \{{ modelNamespace }}  ${{ modelVariable }}
+     * @return \Illuminate\Http\Response
+     */
+    public function show({{ model }} ${{ modelVariable }})
+    {
+        return new {{ resourceName }}(${{ modelVariable }});
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \{{ modelNamespace }}  ${{ modelVariable }}
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, {{ model }} ${{ modelVariable }})
+    {
+        $validator = Validator::make($request->all(), [
+            // Add validation rules based on your schema
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        ${{ modelVariable }}->update($request->all());
+        
+        return new {{ resourceName }}(${{ modelVariable }});
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  \{{ modelNamespace }}  ${{ modelVariable }}
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy({{ model }} ${{ modelVariable }})
+    {
+        ${{ modelVariable }}->delete();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => '{{ model }} deleted successfully'
+        ]);
+    }
+} 

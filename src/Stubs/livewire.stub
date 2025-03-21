@@ -1,0 +1,123 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ modelNamespace }};
+use Livewire\Component;
+use Livewire\WithPagination;
+use Livewire\Attributes\Rule;
+
+class {{ class }} extends Component
+{
+    use WithPagination;
+    
+    // Properties
+    {{ properties }}
+    
+    public $modelId;
+    public $confirmingDeletion = false;
+    public $isEditing = false;
+    
+    /**
+     * Define validation rules
+     */
+    protected function rules()
+    {
+        {{ rules }}
+    }
+    
+    /**
+     * Reset form fields
+     */
+    public function resetFields()
+    {
+        $this->reset(['modelId', 'isEditing']);
+        {{ resetProperties }}
+    }
+    
+    /**
+     * Create a new record
+     */
+    public function store()
+    {
+        $this->validate();
+        
+        {{ model }}::create([
+            // Map properties to model fields
+        ]);
+        
+        $this->resetFields();
+        $this->dispatch('item-saved');
+    }
+    
+    /**
+     * Edit an existing record
+     */
+    public function edit($id)
+    {
+        $this->isEditing = true;
+        $this->modelId = $id;
+        ${{ modelVariable }} = {{ model }}::findOrFail($id);
+        
+        // Map model fields to properties
+        
+        $this->dispatch('item-editing');
+    }
+    
+    /**
+     * Update an existing record
+     */
+    public function update()
+    {
+        $this->validate();
+        
+        ${{ modelVariable }} = {{ model }}::findOrFail($this->modelId);
+        ${{ modelVariable }}->update([
+            // Map properties to model fields
+        ]);
+        
+        $this->resetFields();
+        $this->dispatch('item-updated');
+    }
+    
+    /**
+     * Confirm deletion of a record
+     */
+    public function confirmDelete($id)
+    {
+        $this->confirmingDeletion = true;
+        $this->modelId = $id;
+    }
+    
+    /**
+     * Delete a record
+     */
+    public function delete()
+    {
+        {{ model }}::findOrFail($this->modelId)->delete();
+        $this->confirmingDeletion = false;
+        $this->resetFields();
+        $this->dispatch('item-deleted');
+    }
+    
+    /**
+     * Cancel the current operation
+     */
+    public function cancel()
+    {
+        $this->resetFields();
+        $this->confirmingDeletion = false;
+    }
+    
+    /**
+     * Render the component
+     */
+    public function render()
+    {
+        ${{ modelVariablePlural }} = {{ model }}::latest()->paginate(10);
+        
+        return view('livewire.{{ viewName }}', [
+            '{{ modelVariablePlural }}' => ${{ modelVariablePlural }},
+        ]);
+    }
+} 
