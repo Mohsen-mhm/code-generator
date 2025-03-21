@@ -250,7 +250,7 @@ class ControllerGenerator extends BaseGenerator
      */
     protected function generateCompactVariables($modelVariable, $foreignKeys)
     {
-        $variables = [$modelVariable];
+        $variables = [];
         
         if (!empty($foreignKeys)) {
             foreach ($foreignKeys as $foreignKey) {

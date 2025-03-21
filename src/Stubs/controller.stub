@@ -26,7 +26,7 @@ class {{ class }} extends Controller
     {
         {{ foreignKeyVariables }}
         
-        return view('{{ viewName }}.create', compact({{ compactVariables }}));
+        return view('{{ viewName }}.create'{{ compactVariables ? ', compact(' . compactVariables . ')' : '' }});
     }
 
     /**
@@ -56,7 +56,7 @@ class {{ class }} extends Controller
     {
         {{ foreignKeyVariables }}
         
-        return view('{{ viewName }}.edit', compact({{ compactVariables }}));
+        return view('{{ viewName }}.edit', compact('{{ modelVariableSingular }}'{{ compactVariables ? ", '{$compactVariables}'" : '' }}));
     }
 
     /**
